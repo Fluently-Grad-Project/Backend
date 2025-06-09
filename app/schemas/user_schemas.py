@@ -31,6 +31,7 @@ class UserDataResponse(BaseModel):
     email: str
     gender: Optional[str]
     is_verified: bool
+    full_name: Optional[str] = None
 
     class Config:
         from_attributes = True

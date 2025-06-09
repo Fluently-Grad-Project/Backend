@@ -40,6 +40,7 @@ class UserData(Base):
     received_requests = relationship('FriendRequest', foreign_keys='FriendRequest.receiver_id', back_populates='receiver')
     user_refresh_tokens = relationship('UserRefreshToken', back_populates='user')
     verification_codes = relationship('VerificationCode', back_populates='user')
+    friends = relationship( "UserData", secondary="friendship", primaryjoin="UserData.id==Friendship.user_id", secondaryjoin="UserData.id==Friendship.friend_id", backref="friend_of")
 
 
 class MatchMaking(Base):
@@ -79,6 +80,8 @@ class FriendRequest(Base):
     sender_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'))
     receiver_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'))
     status = Column(Enum(FriendRequestStatus), default=FriendRequestStatus.PENDING)
+    sent_at = Column(DateTime, default=datetime.utcnow)
+
 
     sender = relationship('UserData', foreign_keys=[sender_id], back_populates='sent_requests')
     receiver = relationship('UserData', foreign_keys=[receiver_id], back_populates='received_requests')
@@ -96,6 +99,8 @@ class UserManager(Base):
 
 class Friendship(Base):
     __tablename__ = 'friendship'
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
     user_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'), primary_key=True)
     friend_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'), primary_key=True)
