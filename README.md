@@ -241,3 +241,32 @@ In **Postman**, under the `Authorization` tab:
 * **Body**: None
 
 * Response: List of friends for the authenticated user
+
+
+---
+
+##  Leaderboard Endpoints
+
+### 1.  Get `All users` leaderboard
+
+* **Endpoint:** `GET http://localhost:8000/leaderboard/all`
+
+####  Request Body : None
+####  Response: a list of top users based on number of hours in Activity Tracker
+
+---
+
+### 2.  Get `My friends` leaderboard
+
+* **Endpoint:** `GET http://localhost:8000/leaderboard/friends?page=1&page_size=10`
+
+
+####  Request Body : None
+####  Response: a list of top users based on number of hours in Activity Tracker
+
+>  **Note:**
+>
+> * *page={TO BE SENT FROM UI BASED ON THE PAGE THE USER IS IN}&page_size={TO BE SENT FROM UI BASED ON THE PAGE THE USER IS IN}*
+
+
+---

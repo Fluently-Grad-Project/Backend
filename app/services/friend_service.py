@@ -5,7 +5,6 @@ from typing import List
 from app.database.models import FriendRequest, Friendship, UserData, FriendRequestStatus
 
 def validate_user_exists(db: Session, user_id: int):
-    """Helper function to validate user existence"""
     user = db.query(UserData).get(user_id)
     if not user:
         raise HTTPException(
@@ -35,13 +34,11 @@ def validate_not_already_friends(db: Session, user1_id: int, user2_id: int):
         )
 
 def send_friend_request(db: Session, sender_id: int, receiver_id: int):
-    # Basic validations
     validate_not_self_request(sender_id, receiver_id)
     validate_user_exists(db, sender_id)
     validate_user_exists(db, receiver_id)
     validate_not_already_friends(db, sender_id, receiver_id)
 
-    # Check for existing requests in either direction
     existing_request = db.query(FriendRequest).filter(
         ((FriendRequest.sender_id == sender_id) & (FriendRequest.receiver_id == receiver_id)) |
         ((FriendRequest.sender_id == receiver_id) & (FriendRequest.receiver_id == sender_id)),
@@ -71,7 +68,6 @@ def send_friend_request(db: Session, sender_id: int, receiver_id: int):
     return {"detail": "Friend request sent successfully"}
 
 def accept_friend_request(db: Session, receiver_id: int, sender_id: int):
-    # Basic validations
     validate_user_exists(db, sender_id)
     validate_user_exists(db, receiver_id)
     validate_not_already_friends(db, sender_id, receiver_id)
