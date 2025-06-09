@@ -1,5 +1,17 @@
 #  Backend Setup & API Documentation
 
+## Update the models using these:
+
+```bash
+alembic revision --autogenerate -m "... Add ...COLUMN... column to ...TABLE... ..."
+```
+then:
+
+```bash
+alembic upgrade head
+```
+
+
 ##  How to Run the Backend
 
 > create a database: fluently
@@ -150,3 +162,82 @@ python -m uvicorn app.main:app --reload
   "message": "Password reset successfully"
 }
 ```
+
+
+--------------------------------------------
+
+## Freindship-related endpoints
+
+###  **Precondition**: JWT Token Authentication
+
+In **Postman**, under the `Authorization` tab:
+
+* Type: `Bearer Token`
+* Token: paste your JWT (from login endpoint)
+
+---
+
+##  1. **Send Friend Request**
+
+* **Endpoint**:
+  `POST http://localhost:8000/friends/request/{receiver_id}`
+  Replace `{receiver_id}` with the target user’s ID (e.g. `2`)
+
+* **Body**: None (Just authenticated user is the sender)
+
+---
+
+##  2. **Accept Friend Request**
+
+* **Endpoint**:
+  `POST http://localhost:8000/friends/accept/{sender_id}`
+  Replace `{sender_id}` with the user who sent you the request.
+
+* **Body**: None
+
+* Authenticated user is the receiver.
+
+---
+
+##  3. **Reject Friend Request**
+
+* **Endpoint**:
+  `POST http://localhost:8000/friends/reject/{sender_id}`
+  Replace `{sender_id}` with the user who sent you the request.
+
+* **Body**: None
+
+* Authenticated user is the receiver.
+
+---
+
+##  4. **Get Pending Friend Requests**
+
+* **Endpoint**:
+  `GET http://localhost:8000/friends/get-friend-requests`
+
+* **Body**: None
+
+* Response: List of pending friend requests sent to the authenticated user.
+
+---
+
+##  5. **Get Rejected Friend Requests**
+
+* **Endpoint**:
+  `GET http://localhost:8000/friends/get-rejected-requests`
+
+* **Body**: None
+
+* Response: List of rejected friend requests for authenticated user.
+
+---
+
+##  6. **Get Friend List**
+
+* **Endpoint**:
+  `GET http://localhost:8000/friends/get-friend-list`
+
+* **Body**: None
+
+* Response: List of friends for the authenticated user

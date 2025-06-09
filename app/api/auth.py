@@ -1,7 +1,8 @@
 from datetime import datetime
 import logging
-from typing import Dict
+from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.database.connection import get_db
@@ -15,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @router.post("/login")
-async def login(form_data: LoginRequest, db: Session = Depends(get_db)) -> Dict[str, str]:
+async def login(form_data: LoginRequest, db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         user = authenticate_user(db, form_data.email, form_data.password)
         if not user:
@@ -24,20 +25,34 @@ async def login(form_data: LoginRequest, db: Session = Depends(get_db)) -> Dict[
         if not user.is_verified:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified")
 
-        access_token = create_access_token(data={"sub": user.email})
-        refresh_token = create_refresh_token(data={"sub": user.email})
-        return {"access_token": access_token, "refresh_token": refresh_token}
+        access_token = create_access_token(user=user)
+        refresh_token = create_refresh_token(user=user)
+        user_response = UserDataResponse(
+            id=user.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            gender=user.gender,
+            email=user.email,
+            full_name=f"{user.first_name} {user.last_name}",
+            is_verified=user.is_verified
+        )
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "user": jsonable_encoder(user_response)
+        }
     except SQLAlchemyError as e:
         logger.error(f"Database error during login: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request. Please try again later."
+            detail="An error occurred while processing your request. Please try again later"
         )
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later."
+            detail="An unexpected error occurred. Please try again later"
         )
 
 @router.get("/verify-email")

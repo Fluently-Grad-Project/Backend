@@ -67,6 +67,7 @@ def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataRespons
 def authenticate_user(db: Session, email: str, password: str) -> Optional[UserData]:
     user = db.query(UserData).filter(UserData.email == email).first()
     if user and verify_password(password, user.hashed_password):
+        # print(user)
         return user
     return None
 
