@@ -6,3 +6,4 @@ PyJWT
 pydantic-settings
 psycopg2-binary
 uvicorn
+alembic

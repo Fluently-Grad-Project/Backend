@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Enum, Float, Text
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Enum, Float, Date, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import JSON
@@ -28,6 +28,7 @@ class UserData(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     gender = Column(Enum(GenderEnum))
+    birth_date = Column(Date, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_verified = Column(Boolean, default=False)
@@ -46,7 +47,8 @@ class MatchMaking(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('user_data.id'))
-    age = Column(Integer)
+    languages = Column(ARRAY(String))
+    practice_frequency = Column(String)
     interests = Column(JSON)
     proficiency_level = Column(String)
 

@@ -1,5 +1,6 @@
+from datetime import date
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import List, Optional
 
 class UserBase(BaseModel):
     first_name: str
@@ -17,13 +18,18 @@ class UserDataCreate(BaseModel):
     email: str
     password: str
     gender: Optional[str] = None
+    birth_date: date
+    languages: List[str]
+    proficiency_level: str
+    practice_frequency: str
+    interests: List[str]
 
 class UserDataResponse(BaseModel):
     id: int
     first_name: str
     last_name: str
     email: str
-    gender: Optional[str] = None
+    gender: Optional[str]
     is_verified: bool
 
     class Config:
@@ -37,6 +43,7 @@ class LoginRequest(BaseModel):
 class RegisterResponse(BaseModel):
     user: UserDataResponse
     access_token: str
+    verification_link: str
 
 class PasswordResetRequest(BaseModel):
     email: str
