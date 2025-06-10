@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+apscheduler
+pydantic
+sqlalchemy
+requests
+google-auth
+psycopg2-binary
+itsdangerous
