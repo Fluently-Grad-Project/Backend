@@ -1,0 +1,83 @@
+<h2>User 2 Chat</h2>
+<input type="text" id="receiver_id" placeholder="Receiver ID" />
+<input type="text" id="message" placeholder="Type a message" />
+<button onclick="sendMessage()">Send Message</button>
+
+<script>
+  const token =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6Im1tbUBnbWFpbC5jb20iLCJmdWxsX25hbWUiOiJtIGEiLCJpc192ZXJpZmllZCI6dHJ1ZSwiZXhwIjoxNzQ5NTMzMjY2fQ.VA0AymJztO2sjTCWg6xrDQXgvIIEtxxY0B19UhmS4SE";
+  const socket = new WebSocket(`ws://localhost:8000/ws/chat?token=${token}`);
+
+  socket.onopen = function () {
+    console.log("WebSocket connection opened.");
+  };
+
+  socket.onmessage = function (event) {
+    alert("Received: " + event.data);
+  };
+
+  socket.onerror = function (event) {
+    console.error("WebSocket error:", event);
+  };
+
+  function sendMessage() {
+    const receiver_id = document.getElementById("receiver_id").value;
+    const message = document.getElementById("message").value;
+
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({ receiver_id: parseInt(receiver_id), message })
+      );
+    } else {
+      alert("WebSocket is not connected yet. Try again later!");
+    }
+  }
+</script>
+
+<div id="chatBox"></div>
+
+<br /><br />
+=================================
+<ul id="contactList"></ul>
+
+<script>
+  async function loadChatHistory(receiver_id) {
+    const response = await fetch(
+      `http://localhost:8000/chat/history?receiver_id=${receiver_id}`,
+      {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      }
+    );
+    const messages = await response.json();
+
+    const chatBox = document.getElementById("chatBox");
+    chatBox.innerHTML = "";
+
+    messages.forEach((msg) => {
+      const p = document.createElement("p");
+      p.textContent = `${msg.sender_id === 2 ? "You" : "Them"}: ${msg.message}`;
+      chatBox.appendChild(p);
+    });
+  }
+
+  loadChatHistory(8); // 2 is the other user's ID
+
+  fetch("http://localhost:8000/chat/my-contacts", {
+    headers: {
+      Authorization: "Bearer " + token,
+    },
+  })
+    .then((res) => res.json())
+    .then((users) => {
+      const list = document.getElementById("contactList");
+      list.innerHTML = "";
+      users.forEach((user) => {
+        const li = document.createElement("li");
+        li.textContent = user.first_name + " " + user.last_name;
+        li.onclick = () => loadChatHistory(user.id);
+        list.appendChild(li);
+      });
+    });
+</script>
