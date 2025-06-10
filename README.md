@@ -97,7 +97,7 @@ python -m uvicorn app.main:app --reload
 
 ```json
 {
-  "email": "user@example.com",
+  "email": "user@gmail.com",
   "password": "string"
 }
 ```
@@ -270,3 +270,91 @@ In **Postman**, under the `Authorization` tab:
 
 
 ---
+
+##  Chat Endpoints
+
+### 1. **WebSocket: Real-time Messaging**
+
+* **Endpoint:** `ws://localhost:8000/ws/chat?token=YOUR_JWT_TOKEN`
+
+* **Type:** WebSocket
+
+####  Description:
+
+Establishes a WebSocket connection for real-time chatting between users
+
+####  Send Message Format (JSON):
+
+```json
+{
+  "receiver_id": 2,
+  "message": "Hello!"
+}
+```
+
+####  Message Received:
+
+Messages are received in this format:
+
+```
+SenderName: Hello!
+```
+
+> **Note:**
+>
+> * You must pass a **valid JWT token** in the `token` query parameter
+
+---
+
+### 2. **Get Chat History with a Specific User**
+
+* **Endpoint:** `GET http://localhost:8000/chat/history?receiver_id={receiver_id}`
+
+* **Query Param:**
+
+  * `receiver_id`: The ID of the user you chatted with
+
+* **Headers:**
+
+  * `Authorization: Bearer YOUR_JWT_TOKEN`
+
+####  Response:
+
+```json
+[
+  {
+    "id": 1,
+    "sender_id": 8,
+    "receiver_id": 2,
+    "message": "Hello!",
+    "timestamp": "2025-06-10T14:00:00"
+  },
+]
+```
+
+> Returns ***all messages*** exchanged between the authenticated user and the given `receiver_id`
+
+---
+
+### 3. **Get My Chat Contacts**
+
+* **Endpoint:** `GET http://localhost:8000/chat/my-contacts`
+
+* **Headers:**
+
+  * `Authorization: Bearer YOUR_JWT_TOKEN`
+
+####  Response:
+
+```json
+[
+  {
+    "id": 2,
+    "first_name": "fname",
+    "last_name": "lname",
+    "email": "user@gmail.com"
+  },
+]
+```
+
+> Returns a list of users that the user has ever chatted with (sent or received a message)

@@ -158,3 +158,16 @@ class VerificationCode(Base):
     expiry_time = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(minutes=10))
 
     user = relationship('UserData', back_populates='verification_codes')
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
+    receiver_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
+    message = Column(String, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    sender = relationship("UserData", foreign_keys=[sender_id])
+    receiver = relationship("UserData", foreign_keys=[receiver_id])

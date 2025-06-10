@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict
 from jose import jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, WebSocket, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from app.database.connection import get_db
@@ -55,7 +55,7 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
+    e = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer Token" if token else "Bearer"},
@@ -64,12 +64,31 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("email")
         if email is None:
-            raise credentials_exception
+            raise e
     except JWTError:
-        raise credentials_exception
+        raise e
 
     user = db.query(UserData).filter(UserData.email == email).first()
     if user is None:
-        raise credentials_exception
+        raise e
+
+    return user
+
+
+async def get_current_user_ws(websocket: WebSocket, token: str = Query(...)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id: int = payload.get("user_id")
+        if user_id is None:
+            raise ValueError()
+    except JWTError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise HTTPException(status_code=403, detail="Could not validate credentials")
+
+    db = next(get_db())
+    user = db.query(UserData).filter(UserData.id == user_id).first()
+    if not user:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise HTTPException(status_code=404, detail="User not found")
 
     return user
