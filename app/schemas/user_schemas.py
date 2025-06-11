@@ -39,7 +39,7 @@ class UserDataResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str #EmailStr
     password: str
 
 class RegisterResponse(BaseModel):

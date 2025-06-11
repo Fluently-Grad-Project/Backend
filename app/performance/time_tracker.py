@@ -1,12 +1,15 @@
 import time
+import functools
+import logging
 
-from fastapi import logger
+logger = logging.getLogger(__name__)
 
-def track_time(endpoint_func):
+def track_time(func):
+    @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         start = time.time()
-        response = await endpoint_func(*args, **kwargs)
+        response = await func(*args, **kwargs)
         elapsed = time.time() - start
-        logger.info(f"{endpoint_func.__name__} took {elapsed:.4f}s")
+        logger.info(f"{func.__name__} took {elapsed:.4f}s")
         return response
     return wrapper

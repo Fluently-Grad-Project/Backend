@@ -5,19 +5,12 @@ from app.core.websocket_manager import ConnectionManager
 from fastapi.middleware.cors import CORSMiddleware
 
 import logging
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 
 logging.basicConfig(filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI(docs_url=None, redoc_url=None)
-
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app = FastAPI()
 
 
 app.add_middleware(
