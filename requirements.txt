@@ -11,3 +11,4 @@ websockets
 bleach
 pip-audit
 pydantic[email]
+python-jose
