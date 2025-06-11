@@ -20,6 +20,11 @@ alembic upgrade head
 
 
 ##  How to Run the Backend
+>go to the project main directory and create virtual environment using the following command:
+python -m venv env
+>activate this environment using the following command:
+# For Windows:
+env\Scripts\activate
 
 > create a database: fluently
 - 🚨 *Ensure your username and password are both: **postgres*** 🚨
