@@ -1,31 +1,40 @@
 from datetime import datetime, timedelta
 import logging
 from typing import Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from proj.app.performance.time_tracker import track_time
+from app.performance.time_tracker import track_time
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.database.connection import get_db
 from app.database.models import UserData, UserRefreshToken, VerificationCode
 from app.schemas.user_schemas import LoginRequest, PasswordResetRequest, UpdatePasswprdRequest, UserDataResponse
 from app.services.user_service import authenticate_user, get_user_by_email, request_password_reset, verify_email
-from app.core.auth_manager import create_access_token, create_refresh_token, decode_token, get_password_hash, verify_recaptcha
-from app.main import limiter
+from app.core.auth_manager import create_access_token, create_refresh_token, decode_token, get_password_hash
 from app.core.config import pwd_context
+
+
+# from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
+
 @router.post("/login")
 @track_time
 @limiter.limit("3/minute")
-async def login(form_data: LoginRequest, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def login(request: Request, form_data: LoginRequest = Body(...), db: Session = Depends(get_db)) -> Dict[str, Any]:
+    print("LOGIN ENDPOINT HIT")
+
     try:
-        email = form_data.get("email")
-        password = form_data.get("password")
+        email = form_data.email
+        password = form_data.password
+
 
         ## to-implement-the-api: '''https://www.google.com/recaptcha/api/siteverify'''
         # recaptcha_token = form_data.get("recaptcha_token")
@@ -121,7 +130,7 @@ def verify_email_route(email: str, code: str, db: Session = Depends(get_db)):
 #for forget password service
 @router.post("/request-password-reset")
 @limiter.limit("1/minute")
-def request_password_reset_route(req: PasswordResetRequest, db: Session = Depends(get_db)):
+def request_password_reset_route(request: Request, req: PasswordResetRequest, db: Session = Depends(get_db)):
     try:
         user = get_user_by_email(db, req.email)
         if not user:
@@ -145,7 +154,7 @@ def request_password_reset_route(req: PasswordResetRequest, db: Session = Depend
 
 @router.post("/reset-password")
 @limiter.limit("3/minute")
-def reset_password_route(req: UpdatePasswprdRequest, db: Session = Depends(get_db)):
+def reset_password_route(request: Request, req: UpdatePasswprdRequest, db: Session = Depends(get_db)):
     try:
         user = get_user_by_email(db, req.email)
         if not user:
@@ -185,7 +194,7 @@ def reset_password_route(req: UpdatePasswprdRequest, db: Session = Depends(get_d
 
 @router.post("/refresh-token")
 @limiter.limit("2/minute")
-def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
+def refresh_access_token(request: Request, refresh_token: str, db: Session = Depends(get_db)):
     payload = decode_token(refresh_token, "Refresh")
     user_id = payload.get("sub")
 
