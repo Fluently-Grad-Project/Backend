@@ -66,6 +66,17 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         if email is None:
             raise e
     except JWTError:
+        try:
+            payload = jwt.get_unverified_claims(token)
+            user_id = payload.get("sub")
+            if user_id:
+                user = db.query(UserData).get(user_id)
+                if user:
+                    user.is_active = False
+                    db.commit()
+        except:
+            pass
+        
         raise e
 
     user = db.query(UserData).filter(UserData.email == email).first()

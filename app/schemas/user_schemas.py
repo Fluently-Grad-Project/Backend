@@ -32,6 +32,7 @@ class UserDataResponse(BaseModel):
     gender: Optional[str]
     is_verified: bool
     full_name: Optional[str] = None
+    is_active: bool
 
     class Config:
         from_attributes = True

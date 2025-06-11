@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -8,6 +9,7 @@ class ChatMessageResponse(BaseModel):
     receiver_id: int
     message: str
     timestamp: datetime
+    status: Optional[str] = "sent"
 
     class Config:
         from_attributes = True

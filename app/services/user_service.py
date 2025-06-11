@@ -28,41 +28,29 @@ def save_verification_code(db: Session, user_id: int, code: str, expires_in_min:
 def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataResponse, str]:
     hashed_password = get_password_hash(user_data.password)
     verification_code = generate_verification_code()
+    db_user = UserData(
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
+        email=user_data.email,
+        hashed_password=hashed_password,
+        gender=user_data.gender,
+        birth_date=user_data.birth_date,
+        is_verified=False
+    )
+    db.add(db_user)
+    db.flush()
 
-    try:
-        if not db.in_transaction():
-            db.begin()
-
-        db_user = UserData(
-            first_name=user_data.first_name,
-            last_name=user_data.last_name,
-            email=user_data.email,
-            hashed_password=hashed_password,
-            gender=user_data.gender,
-            birth_date=user_data.birth_date,
-            is_verified=False
-        )
-        db.add(db_user)
-        db.flush()
-
-        db.add(MatchMaking(
-            user_id=db_user.id,
-            languages=user_data.languages,
-            practice_frequency=user_data.practice_frequency,
-            proficiency_level=user_data.proficiency_level,
-            interests=user_data.interests
-        ))
-        db.add(UserManager(user_data_id=db_user.id))
-        
-        verification = save_verification_code(db, db_user.id, verification_code)
-
-        db.commit()
-        return UserDataResponse.from_orm(db_user), verification.code
-
-    except Exception as e:
-        db.rollback()
-        raise e
+    db.add(MatchMaking(
+        user_id=db_user.id,
+        languages=user_data.languages,
+        practice_frequency=user_data.practice_frequency,
+        proficiency_level=user_data.proficiency_level,
+        interests=user_data.interests
+    ))
+    db.add(UserManager(user_data_id=db_user.id))
     
+    verification = save_verification_code(db, db_user.id, verification_code)
+    return db_user, verification.code
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[UserData]:
     user = db.query(UserData).filter(UserData.email == email).first()

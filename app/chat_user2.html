@@ -5,11 +5,11 @@
 
 <script>
   const token =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6Im1tbUBnbWFpbC5jb20iLCJmdWxsX25hbWUiOiJtIGEiLCJpc192ZXJpZmllZCI6dHJ1ZSwiZXhwIjoxNzQ5NTMzMjY2fQ.VA0AymJztO2sjTCWg6xrDQXgvIIEtxxY0B19UhmS4SE";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4LCJlbWFpbCI6Im1lbm5hdGFsbGFoYWhtZWQ4OTJAZ21haWwuY29tIiwiZnVsbF9uYW1lIjoibTIgYSIsImlzX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE3NDk2NDI0NTV9.usssOiMDxLaNL7KxnfpG7qD2ff7L6Kjbr0P2kqbhDSI";
   const socket = new WebSocket(`ws://localhost:8000/ws/chat?token=${token}`);
 
   socket.onopen = function () {
-    console.log("WebSocket connection opened.");
+    console.log("WebSocket connection opened");
   };
 
   socket.onmessage = function (event) {
@@ -57,12 +57,21 @@
 
     messages.forEach((msg) => {
       const p = document.createElement("p");
-      p.textContent = `${msg.sender_id === 2 ? "You" : "Them"}: ${msg.message}`;
+      p.textContent = `${msg.sender_id === 8 ? "You" : "Them"}: ${
+        msg.message
+      } (${msg.status})`;
       chatBox.appendChild(p);
+    });
+
+    await fetch(`http://localhost:8000/chat/mark-as-read/${receiver_id}`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token,
+      },
     });
   }
 
-  loadChatHistory(8); // 2 is the other user's ID
+  loadChatHistory(8);
 
   fetch("http://localhost:8000/chat/my-contacts", {
     headers: {

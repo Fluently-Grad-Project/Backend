@@ -7,6 +7,12 @@ from app.core.websocket_manager import ConnectionManager
 from fastapi.middleware.cors import CORSMiddleware
 
 
+import logging
+
+logging.basicConfig(filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+
 app = FastAPI()
 
 app.add_middleware(

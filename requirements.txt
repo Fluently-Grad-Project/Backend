@@ -8,3 +8,5 @@ psycopg2-binary
 uvicorn
 alembic
 websockets
+bleach
+pip-audit

@@ -24,6 +24,9 @@ async def login(form_data: LoginRequest, db: Session = Depends(get_db)) -> Dict[
 
         if not user.is_verified:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified")
+        
+        user.is_active=True
+        db.commit()
 
         access_token = create_access_token(user=user)
         refresh_token = create_refresh_token(user=user)
@@ -34,7 +37,8 @@ async def login(form_data: LoginRequest, db: Session = Depends(get_db)) -> Dict[
             gender=user.gender,
             email=user.email,
             full_name=f"{user.first_name} {user.last_name}",
-            is_verified=user.is_verified
+            is_verified=user.is_verified,
+            is_active=user.is_active
         )
         return {
             "access_token": access_token,
