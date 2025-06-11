@@ -23,7 +23,7 @@ alembic upgrade head
 >go to the project main directory and create virtual environment using the following command:
 ```bash
 python -m venv env
->activate this environment using the following command:
+#activate this environment using the following command:
 ```bash
 # For Windows:
 env\Scripts\activate
