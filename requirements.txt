@@ -10,3 +10,4 @@ alembic
 websockets
 bleach
 pip-audit
+pydantic[email]
