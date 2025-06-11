@@ -27,6 +27,7 @@ python -m venv env
 
 # For Windows:
 env\Scripts\activate
+```
 
 > create a database: fluently
 - 🚨 *Ensure your username and password are both: **postgres*** 🚨
