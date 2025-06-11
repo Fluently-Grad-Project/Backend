@@ -29,7 +29,7 @@ class UserData(Base):
     hashed_password = Column(String)
     gender = Column(Enum(GenderEnum))
     birth_date = Column(Date, nullable=True)
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_verified = Column(Boolean, default=False)
 
@@ -168,6 +168,7 @@ class ChatMessage(Base):
     receiver_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
     message = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="sent", nullable=False)  #'sent', 'delivered', 'read'
 
     sender = relationship("UserData", foreign_keys=[sender_id])
     receiver = relationship("UserData", foreign_keys=[receiver_id])

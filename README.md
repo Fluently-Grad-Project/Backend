@@ -1,5 +1,12 @@
 #  Backend Setup & API Documentation
 
+## Infrastructure security things
+
+for the secrets needed in the app, to avoid being hardcoded:
+> docker run --cap-add=IPC_LOCK -e VAULT_DEV_ROOT_TOKEN_ID=myroot -e VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200 -p 8200:8200 hashicorp/vault:1.19
+
+access through: ``` http://localhost:8200/ui/vault/dashboard ```
+
 ## Update the models using these:
 
 ```bash
@@ -273,6 +280,16 @@ In **Postman**, under the `Authorization` tab:
 
 ##  Chat Endpoints
 
+###  Message Status Lifecycle
+
+| Status     | Meaning                                      |
+|------------|----------------------------------------------|
+| `sent`     | Message created by sender                   |
+| `delivered`| Recipient was online and received the message |
+| `read`     | Recipient viewed the message in the chat UI  |
+
+
+
 ### 1. **WebSocket: Real-time Messaging**
 
 * **Endpoint:** `ws://localhost:8000/ws/chat?token=YOUR_JWT_TOKEN`
@@ -327,8 +344,9 @@ SenderName: Hello!
     "sender_id": 8,
     "receiver_id": 2,
     "message": "Hello!",
-    "timestamp": "2025-06-10T14:00:00"
-  },
+    "timestamp": "2025-06-10T14:00:00",
+    "status": "delivered"  // "sent", "delivered", or "read"
+  }
 ]
 ```
 
@@ -358,3 +376,26 @@ SenderName: Hello!
 ```
 
 > Returns a list of users that the user has ever chatted with (sent or received a message)
+
+---
+
+### 4. **Mark Messages as Read**
+**Endpoint:** POST /chat/mark-as-read/{sender_id}
+Marks messages from the given sender as read for the user
+
+**Headers:**
+
+Authorization: Bearer YOUR_JWT_TOKEN
+
+**Path Param:**
+sender_id — ID of the user who sent you the messages
+
+**Body: None**
+
+Response:
+```json
+{
+  "message": "Messages marked as read"
+}
+```
+> ***This should be called from the frontend when the user opens the chat***

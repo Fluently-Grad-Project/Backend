@@ -17,22 +17,19 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-def register_user(
-    user: UserDataCreate, 
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
-):
+def register_user( user: UserDataCreate,  background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     try:
         existing_user = get_user_by_email(db, user.email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, 
-                detail="Email already exists!"
+                detail="Email already exists"
             )        
         db_user, verification_code = create_user(db, user)
 
         verification_link = f"{BASE_URL}/auth/verify-email?email={db_user.email}&code={verification_code}"
-        access_token = create_access_token(data={"sub": db_user.email})
+        access_token = create_access_token(user=db_user)
+        db.commit()
 
         background_tasks.add_task(
             send_verification_email,
@@ -47,4 +44,5 @@ def register_user(
         }
 
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"An error occurred during registration: {str(e)}")
