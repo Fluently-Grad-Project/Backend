@@ -1,3 +1,12 @@
+# To-Be-DoneS-Later     >> after team-meating probably??
+
+## 📌📌📌📌
+> A verify_recaptcha() function was added to call Google's API
+> The login route now requires a recaptcha_token in the request
+> If CAPTCHA validation fails, the login is blocked and logged
+
+
+
 #  Backend Setup & API Documentation
 
 ## Infrastructure security things
