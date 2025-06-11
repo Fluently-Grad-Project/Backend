@@ -24,7 +24,7 @@ alembic upgrade head
 ```bash
 python -m venv env
 #activate this environment using the following command:
-```bash
+
 # For Windows:
 env\Scripts\activate
 
