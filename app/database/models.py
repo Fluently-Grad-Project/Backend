@@ -32,6 +32,7 @@ class UserData(Base):
     is_active = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_verified = Column(Boolean, default=False)
+    is_locked = Column(Boolean, default=False)
 
     matchmaking_attributes = relationship('MatchMaking', back_populates='user', uselist=False)
     activity_tracker = relationship('ActivityTracker', back_populates='user', uselist=False)

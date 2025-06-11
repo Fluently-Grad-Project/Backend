@@ -1,21 +1,39 @@
 from datetime import datetime, timedelta
+import re
 from typing import Any, Dict
 from jose import jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, Query, WebSocket, status
+from fastapi import Depends, HTTPException, Query, WebSocket, requests, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from app.database.connection import get_db
 from sqlalchemy.orm import Session
 from app.database.models import UserData
-from app.core.config import SECRET_KEY, ALGORITHM, pwd_context, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.config import SECRET_KEY, ALGORITHM, pwd_context, ACCESS_TOKEN_EXPIRE_MINUTES, RECAPTCH_KEY
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
+def verify_password_strength(password: str) -> bool:
+    pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$"
+    return bool(re.match(pattern, password))
+
+
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+################
+def verify_recaptcha(token: str) -> bool:
+    secret_key = RECAPTCH_KEY
+    response = requests.post(
+        "https://www.google.com/recaptcha/api/siteverify",
+        data={"secret": secret_key, "response": token}
+    )
+    result = response.json()
+    return result.get("success", False)
+
+
 
 def create_access_token(user: UserData, expires_delta: timedelta = None) -> str:
     to_encode = {
@@ -31,25 +49,32 @@ def create_access_token(user: UserData, expires_delta: timedelta = None) -> str:
 
 
 def create_refresh_token(user: UserData, expires_delta: timedelta = None):
-    to_encode = {
-        "sub": user.email,
-        "user_id": user.id
-    }
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(days=7)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    try:
+        to_encode = {
+            "sub": user.email,
+            "user_id": user.id
+        }
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(days=7)
+        to_encode.update({"exp": expire})
+        token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return token
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
-def decode_access_token(token: str) -> Dict[str, Any]:
+def decode_token(token: str, token_type:str) -> Dict[str, Any]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload if "sub" in payload else None
-    except jwt.JWTError:
-        return None
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail=f"{token_type} Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail=f"Invalid {token_type} token")
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")

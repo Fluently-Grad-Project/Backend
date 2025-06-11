@@ -1,19 +1,24 @@
 from fastapi import FastAPI
 from app.api import user, auth, friend_routes, leaderboard_routes
 from app.api.chat import router as chat_router
-
 from app.core.websocket_manager import ConnectionManager
-
 from fastapi.middleware.cors import CORSMiddleware
 
-
 import logging
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 logging.basicConfig(filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,6 +27,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("security")
+
 
 app.include_router(user.router, prefix="/users", tags=["Users"])
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
