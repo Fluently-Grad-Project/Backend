@@ -5,6 +5,10 @@
 > The login route now requires a recaptcha_token in the request
 > If CAPTCHA validation fails, the login is blocked and logged
 
+----
+> ### Password Strength:
+> at least 8 characters, one lowercase, one uppercase, one digit
+----
 
 
 #  Backend Setup & API Documentation
