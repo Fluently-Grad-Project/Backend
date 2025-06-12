@@ -30,7 +30,12 @@ then:
 ```bash
 alembic upgrade head
 ```
+## To update The proficiency_level field in matchmaking table run the following commands but make sure that the Database is up-to-data
+```bash
 
+alembic revision --autogenerate -m "Add proficiency_level to matchmaking"
+alembic upgrade head
+```
 
 ##  How to Run the Backend
 >go to the project main directory and create virtual environment using the following command:
