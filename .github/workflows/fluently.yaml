@@ -26,7 +26,7 @@ jobs:
           --health-retries=5
 
     env:
-      DATABASE_URL: postgresql://postgres:password@localhost:5432/test_db
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
       BASE_URL: http://localhost:8000
       SECRET_KEY: testing-secret
       JWT_ISSUER: test-issuer
