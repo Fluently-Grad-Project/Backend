@@ -34,6 +34,9 @@ alembic upgrade head
 ```bash
 
 alembic revision --autogenerate -m "Add proficiency_level to matchmaking"
+```
+then:
+```bash
 alembic upgrade head
 ```
 
