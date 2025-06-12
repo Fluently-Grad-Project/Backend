@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from app.schemas.user_schemas import UserDataCreate, UserDataResponse, RegisterResponse
 from app.services.user_service import get_user_by_email, create_user, save_user
 from app.core.auth_manager import create_access_token
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-def register_user( user: UserDataCreate,  background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def register_user(background_tasks: BackgroundTasks, user: UserDataCreate = Body(...), db: Session = Depends(get_db)):
     try:
         existing_user = get_user_by_email(db, user.email)
         if existing_user:
