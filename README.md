@@ -81,7 +81,7 @@ python -m uvicorn app.main:app --reload
   "gender": "FEMALE",
   "birth_date": "2003-06-18",
   "languages": ["English", "Turkish"],
-  "proficiency_level": "Intermediate",
+  "proficiency_level": "INTERMEDIATE",
   "practice_frequency": "15",
   "interests": ["Reading", "Traveling"]
 }
