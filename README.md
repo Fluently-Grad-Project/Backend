@@ -1,24 +1,42 @@
-# To-Be-DoneS-Later     >> after team-meating probably??
+# To-Be-DoneS-Later     >> after team-meeting probably??
 
 ## 📌📌📌📌
-> A verify_recaptcha() function was added to call Google's API
-> The login route now requires a recaptcha_token in the request
+> A verify_recaptcha() function was added to call Google's API    
+> The login route now requires a recaptcha_token in the request   
 > If CAPTCHA validation fails, the login is blocked and logged
+
+---
+
+> localization and globalization    
+> run SAST using sonarqube/bandit and inject it to the pipeline --> yes, using GitHub Actions [to-be-learned]    
+> run DAST using OWASP ZAP or [Burp Suite]    
+> on deployment:
+>  - **Use Docker securely:**   
+>     - Use non-root users   
+>     - Use multi-stage builds   
+>     - Scan Docker images (docker scan or Trivy)    
+>  -  **Environment Hardening:**    
+>     - Disable debug mode in production (uvicorn main:app --env=production)   
+>     - Use HTTPS in production (TLS with certbot or Cloudflare)   
+>     - Apply CIS Benchmarks for OS and container security   
+>  - **Secure secrets in deployment**   
+>     - Don’t store tokens or passwords in your GitHub   
 
 ----
 > ### Password Strength:
 > at least 8 characters, one lowercase, one uppercase, one digit
 ----
 
-
 #  Backend Setup & API Documentation
 
-## Infrastructure security things
+## How to run things    
 
-for the secrets needed in the app, to avoid being hardcoded:
-> docker run --cap-add=IPC_LOCK -e VAULT_DEV_ROOT_TOKEN_ID=myroot -e VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200 -p 8200:8200 hashicorp/vault:1.19
-
-access through: ``` http://localhost:8200/ui/vault/dashboard ```
+**To run tests:**
+*NOT YET COMPLETED*
+```bash
+$env:PYTHONPATH = "."
+pytest --cov=app tests/
+```
 
 ## Update the models using these:
 

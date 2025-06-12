@@ -13,3 +13,6 @@ pip-audit
 pydantic[email]
 python-jose
 slowapi
+pytest
+pytest-cov
+httpx
