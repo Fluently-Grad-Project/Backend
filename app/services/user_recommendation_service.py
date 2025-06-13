@@ -87,9 +87,9 @@ def get_similar_users(
             index=users_df.index,
         )
 
-        gender_encoded = pd.get_dummies(
-            users_df["gender"].fillna("missing"), prefix="gender"
-        )
+        # gender_encoded = pd.get_dummies(
+        #     users_df["gender"].fillna("missing"), prefix="gender"
+        # )
 
         final_features = pd.concat(
             [interests_encoded, practice_encoded, proficiency_encoded, age_scaled],

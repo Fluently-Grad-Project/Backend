@@ -23,8 +23,23 @@
 >     - Don’t store tokens or passwords in your GitHub   
 
 ----
-> ### Password Strength:
+# Password Strength:
 > at least 8 characters, one lowercase, one uppercase, one digit
+----
+
+## 📌📌📌📌
+# ***BEFORE COMMITTING***
+
+## To ensure we're sticking to standard format:
+```bash 
+black . 
+```   
+
+```bash
+flake8 . --exclude=env,.venv,venv --max-line-length=200 --ignore=E203,E262,W291,W503
+```   
+then fix these issues
+
 ----
 
 #  Backend Setup & API Documentation

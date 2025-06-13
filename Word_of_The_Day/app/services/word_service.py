@@ -251,7 +251,7 @@ def send_daily_word_notification(db: Session):
     daily_word = db.query(DailyWord).filter(DailyWord.date == today).first()
     if not daily_word:
         raise HTTPException(status_code=404, detail="Today's word not found")
-    fcm_tokens = db.query(FCMToken).filter(FCMToken.is_active == True).all()
+    fcm_tokens = db.query(FCMToken).filter(FCMToken.is_active.is_(True)).all()
     if not fcm_tokens:
         raise HTTPException(status_code=404, detail="No active FCM tokens found")
     for token in fcm_tokens:

@@ -53,7 +53,7 @@ async def login(
         email = form_data.email
         password = form_data.password
 
-        ## to-implement-the-api: '''https://www.google.com/recaptcha/api/siteverify'''
+        # to-implement-the-api: '''https://www.google.com/recaptcha/api/siteverify'''
         # recaptcha_token = form_data.get("recaptcha_token")
 
         # if not verify_recaptcha(recaptcha_token):

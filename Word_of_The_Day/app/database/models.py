@@ -10,12 +10,13 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.ext.declarative import declarative_base
+
+# from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
 
-Base = declarative_base()
+# Base = declarative_base()
 
 
 class WordOfTheDay(Base):

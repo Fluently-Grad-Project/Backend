@@ -20,9 +20,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
 
-# from app.database.base import Base
-
-Base = declarative_base()
+BaseORM = declarative_base()
 
 
 class GenderEnum(enum.Enum):
@@ -37,7 +35,7 @@ class ProficiencyLevel(enum.Enum):
     FLUENT = "Fluent"
 
 
-class UserData(Base):
+class UserData(BaseORM):
     __tablename__ = "user_data"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -85,7 +83,7 @@ class UserData(Base):
     )
 
 
-class MatchMaking(Base):
+class MatchMaking(BaseORM):
     __tablename__ = "matchmaking"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -98,7 +96,7 @@ class MatchMaking(Base):
     user = relationship("UserData", back_populates="matchmaking_attributes")
 
 
-class ActivityTracker(Base):
+class ActivityTracker(BaseORM):
     __tablename__ = "activity_tracker"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -115,7 +113,7 @@ class FriendRequestStatus(enum.Enum):
     REJECTED = "REJECTED"
 
 
-class FriendRequest(Base):
+class FriendRequest(BaseORM):
     __tablename__ = "friend_requests"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -132,7 +130,7 @@ class FriendRequest(Base):
     )
 
 
-class UserManager(Base):
+class UserManager(BaseORM):
     __tablename__ = "user_manager"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -144,7 +142,7 @@ class UserManager(Base):
     user_data = relationship("UserData", back_populates="user_manager")
 
 
-class Friendship(Base):
+class Friendship(BaseORM):
     __tablename__ = "friendship"
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -180,7 +178,7 @@ class RefreshToken(BaseModel):
     expiration: datetime
 
 
-class UserRefreshToken(Base):
+class UserRefreshToken(BaseORM):
     __tablename__ = "user_refresh_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -201,7 +199,7 @@ class TokenData(BaseModel):
     user_id: Optional[int] = None
 
 
-class VerificationCode(Base):
+class VerificationCode(BaseORM):
     __tablename__ = "verification_codes"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -214,7 +212,7 @@ class VerificationCode(Base):
     user = relationship("UserData", back_populates="verification_codes")
 
 
-class ChatMessage(Base):
+class ChatMessage(BaseORM):
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
