@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 import re
 from typing import Any, Dict
-from jose import jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, Query, WebSocket, requests, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -108,7 +106,7 @@ def get_current_user(
                 if user:
                     user.is_active = False
                     db.commit()
-        except:
+        except Exception:
             pass
 
         raise e

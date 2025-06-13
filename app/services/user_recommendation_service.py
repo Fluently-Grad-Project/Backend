@@ -9,13 +9,12 @@ from app.schemas.user_schemas import MatchedUserResponse
 from app.database.models import UserData, MatchMaking, UserManager
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-# Cache similar users for 15 minutes (900 seconds)
 similar_users_cache = TTLCache(maxsize=128, ttl=300)
 user_details_cache = TTLCache(maxsize=256, ttl=300)
 @cached(similar_users_cache)
 def get_similar_users(user_id: int, n_recommendations: int = 5) -> List[Tuple[int, float]]:
     """Get similar active non-friend users with their similarity scores"""
-    print(f"Computing similar users for {user_id}")  # Debug to see cache hits
+    print(f"Computing similar users for {user_id}")
     
     engine = sqlalchemy.create_engine("postgresql://postgres:asdqwe123@localhost/fluently")
     
@@ -48,7 +47,6 @@ def get_similar_users(user_id: int, n_recommendations: int = 5) -> List[Tuple[in
         if users_df.empty:
             return []
 
-        # Feature engineering
         interests = users_df['interests'].apply(lambda x: x if isinstance(x, list) else [])
         mlb = MultiLabelBinarizer()
         interests_encoded = pd.DataFrame(

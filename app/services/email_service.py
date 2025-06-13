@@ -1,7 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from fastapi import BackgroundTasks
 from app.core.config import SMTP_HOST, SMTP_PORT, SMTP_PASSWORD, SMTP_USER, EMAIL_FROM
 
 

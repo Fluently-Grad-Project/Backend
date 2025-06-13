@@ -1,6 +1,6 @@
 from datetime import date
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Union
 from app.database.models import GenderEnum
 
 class UserBase(BaseModel):
@@ -35,6 +35,7 @@ class UserDataResponse(BaseModel):
     is_verified: bool
     full_name: Optional[str] = None
     is_active: bool
+    interests: Optional[Union[List[str], dict]] = None
 
     class Config:
         from_attributes = True

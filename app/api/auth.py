@@ -102,6 +102,11 @@ async def login(
             full_name=f"{user.first_name} {user.last_name}",
             is_verified=user.is_verified,
             is_active=user.is_active,
+            interests=(
+                user.matchmaking_attributes.interests
+                if user.matchmaking_attributes
+                else None
+            ),
         )
         return {
             "access_token": access_token,

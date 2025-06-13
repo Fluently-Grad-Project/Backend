@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import secrets
 
 from app.core.auth_manager import (
-    create_access_token,
     verify_password,
     get_password_hash,
 )

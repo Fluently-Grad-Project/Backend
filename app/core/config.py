@@ -1,6 +1,4 @@
 from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer
-from pydantic_settings import BaseSettings
 
 SECRET_KEY = "fluently-org-secret-key"
 ALGORITHM = "HS256"
