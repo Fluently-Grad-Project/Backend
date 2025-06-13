@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 import bcrypt
 
 # import requests
-from fastapi import Depends, HTTPException, Query, WebSocket, logger, status
+from fastapi import Depends, HTTPException, Query, WebSocket, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError

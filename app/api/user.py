@@ -156,3 +156,37 @@ def get_user_average_rating(user_id: int, db: Session = Depends(get_db)):
         "average_rating": round(average, 2),
         "count": len(ratings),
     }
+
+
+@router.post("/block-user/{user_id_to_block}")
+def block_user(
+    user_id_to_block: int,
+    db: Session = Depends(get_db),
+    current_user: UserData = Depends(get_current_user),
+):
+    if current_user.id == user_id_to_block:
+        raise HTTPException(status_code=400, detail="You cannot block yourself")
+
+    blocked_user = db.query(UserData).filter(UserData.id == user_id_to_block).first()
+    if not blocked_user:
+        raise HTTPException(status_code=404, detail="User to block not found")
+
+    if user_id_to_block in current_user.blocked_user_ids:
+        raise HTTPException(status_code=409, detail="User already blocked")
+
+    current_user.blocked_user_ids.append(user_id_to_block)
+    # blocked_user.blocked_user_ids.append(current_user.id)
+
+    db.commit()
+
+    return {"message": f"You blocked user {user_id_to_block} successfully"}
+
+
+@router.get("/blocked-users")
+def get_blocked_users(
+    db: Session = Depends(get_db), current_user: UserData = Depends(get_current_user)
+):
+    user = db.query(UserData).filter(UserData.id == current_user.id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"blocked_user_ids": user.blocked_user_ids}

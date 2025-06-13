@@ -81,6 +81,7 @@ alembic upgrade head
 
 alembic revision --autogenerate -m "add profile_pic"
 alembic revision --autogenerate -m "add UserRating table"
+alembic revision --autogenerate -m "blocked_user_ids list a mutable"
 ```
 then:
 ```bash
@@ -514,7 +515,7 @@ Response:
   `POST http://127.0.0.1:8000/users/rate-user/{user_id}`
   *(Replace `{user_id}` with the ID of the user you want to rate)*
 
-* **Authorization Required:** ✅ Bearer Token
+* **Authorization Required:** Bearer Token
 
 #### Headers:
 
@@ -562,3 +563,54 @@ Content-Type: application/json
 ```
 
 > ℹ️ `count` is the number of users who rated this user
+
+
+----
+
+
+## Block User (from another user) Endpoints
+
+### 1. **Rate a User**
+
+* **Endpoint:**
+  `POST http://127.0.0.1:8000/users/block-user/{user_id_to_block}`
+  *(Replace `{user_id}` with the ID of the user you want to block)*
+
+* **Authorization Required:** Bearer Token
+
+#### Headers:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+#### Request Body: none
+
+> 🟡 Allowed range is from **1** to **5**, floats are accepted (4.5)
+
+#### Response:
+
+```json
+{
+    "message": "You blocked user {user_id_to_block} successfully"
+}
+```
+
+---
+
+### 2. **Get Blocked users for a user**
+
+* **Endpoint:**
+  `GET http://127.0.0.1:8000/users/blocked-users`
+
+* **Authorization Required:** None
+
+#### Response:
+
+```json
+{
+    "blocked_user_ids": [
+        id1,
+    ]
+}
+```

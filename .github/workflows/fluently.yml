@@ -6,22 +6,24 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+  BASE_URL: http://localhost:8000
+  SECRET_KEY: testing-secret
+  JWT_ISSUER: test-issuer
+  JWT_AUDIENCE: test-audience
+
 jobs:
-  ci:
+  setup:
     runs-on: ubuntu-latest
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-      BASE_URL: http://localhost:8000
-      SECRET_KEY: testing-secret
-      JWT_ISSUER: test-issuer
-      JWT_AUDIENCE: test-audience
-
+    outputs:
+      python-version: ${{ steps.set-py.outputs.python-version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
+        id: set-py
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -42,49 +44,81 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
 
-      # ---------- Lint ----------
-      - name: Lint with flake8
-        run: |
+  lint:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: |
           pip install flake8
           flake8 . --max-line-length=200 --ignore=E203,E262,W291,W503
 
-      # ---------- Type Checking ----------
-      - name: Type check with mypy
-        run: |
+  type-check:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: |
           pip install mypy
           mypy app
 
-      # ---------- Format Check ----------
-      - name: Check code formatting with black
-        run: |
+  format-check:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: |
           pip install black
           black --check app tests
 
-      # ---------- Dependency Security ----------
-      - name: Security audit with pip-audit
-        run: |
-          pip install pip-audit
+  security-audit:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: |
+          pip install pip-audit bandit
           pip-audit
-
-      # ---------- Static Analysis ----------
-      - name: Static analysis with Bandit
-        run: |
-          pip install bandit
           bandit -r app -x tests
 
-      - name: Run SAST with Semgrep
-        uses: returntocorp/semgrep-action@v1
+  semgrep:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: returntocorp/semgrep-action@v1
         with:
           config: p/ci
 
-      # ---------- Secret Detection ----------
-      - name: Detect secrets with Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+  gitleaks:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gitleaks/gitleaks-action@v2
         with:
           args: "--verbose --redact"
 
-      # ---------- Tests ----------
-      # - name: Run tests with pytest
-      #   run: |
-      #     pip install pytest pytest-cov
-      #     pytest --cov=app tests/
+  # tests:
+  #   needs: setup
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.11'
+  #     - run: |
+  #         pip install pytest pytest-cov
+  #         pytest --cov=app tests/

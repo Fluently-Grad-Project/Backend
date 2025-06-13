@@ -16,6 +16,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 
@@ -52,6 +53,9 @@ class UserData(BaseORM):
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False)
     failed_attempts: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     profile_image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    blocked_user_ids: Mapped[list[int]] = mapped_column(
+        MutableList.as_mutable(ARRAY(Integer)), default=list
+    )
 
     matchmaking_attributes = relationship(
         "MatchMaking", back_populates="user", uselist=False
