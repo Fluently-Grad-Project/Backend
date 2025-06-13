@@ -4,9 +4,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 
-# from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.exc import SQLAlchemyError
@@ -53,37 +51,22 @@ async def login(
         email = form_data.email
         password = form_data.password
 
-        # to-implement-the-api: '''https://www.google.com/recaptcha/api/siteverify'''
-        # recaptcha_token = form_data.get("recaptcha_token")
-
-        # if not verify_recaptcha(recaptcha_token):
-        #     logger.warning(f"reCAPTCHA failed for {email}")
-        #     return JSONResponse(status_code=400, content={"message": "Failed CAPTCHA validation"})
-
         user = authenticate_user(db, email, password)
         if not user:
             logger.warning(f"Failed login - no user: {email}")
-            return JSONResponse(
-                status_code=401, content={"message": "Invalid credentials"}
-            )
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
         if not user.is_verified:
             logger.warning(f"Failed login - unverified: {email}")
-            return JSONResponse(
-                status_code=403, content={"message": "Email not verified"}
-            )
+            raise HTTPException(status_code=403, detail="Email not verified")
 
         if not verify_password(password, user.hashed_password):
-            user.failed_attempts += 1
-            db.commit()
-
+            user.failed_attempts = (user.failed_attempts or 0) + 1
             if user.failed_attempts >= 5:
                 user.is_locked = True
                 logger.error(f"User locked due to failed attempts: {email}")
             db.commit()
-            return JSONResponse(
-                status_code=401, content={"message": "Invalid credentials"}
-            )
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
         user.is_active = True
         user.is_locked = False
@@ -91,13 +74,11 @@ async def login(
         db.commit()
         logger.info(f"User logged in: {email}")
 
-        access_token = create_access_token(user=user)
-        refresh_token = create_refresh_token(user=user)
         user_response = UserDataResponse(
             id=user.id,
             first_name=user.first_name,
             last_name=user.last_name,
-            gender=user.gender,
+            gender=str(user.gender) if user.gender else None,
             email=user.email,
             full_name=f"{user.first_name} {user.last_name}",
             is_verified=user.is_verified,
@@ -109,6 +90,10 @@ async def login(
                 else None
             ),
         )
+
+        access_token = create_access_token(user=user_response)
+        refresh_token = create_refresh_token(user=user)
+
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -123,7 +108,7 @@ async def login(
         )
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred. Please try again later",
         )
@@ -171,7 +156,6 @@ def verify_email_route(email: str, code: str, db: Session = Depends(get_db)):
         )
 
 
-# for forget password service
 @router.post("/request-password-reset")
 @limiter.limit("1/minute")
 def request_password_reset_route(
@@ -279,9 +263,24 @@ def refresh_access_token(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # db_token.is_used = True       ##marks the old token as used to prevent token-reuse - TBI
-
-    new_access_token = create_access_token(user=user)
+    new_access_token = create_access_token(
+        user=UserDataResponse(
+            id=user.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            gender=str(user.gender) if user.gender else None,
+            email=user.email,
+            full_name=f"{user.first_name} {user.last_name}",
+            is_verified=user.is_verified,
+            is_active=user.is_active,
+            profile_image=user.profile_image,
+            interests=(
+                user.matchmaking_attributes.interests
+                if user.matchmaking_attributes
+                else None
+            ),
+        )
+    )
     new_refresh_token = create_refresh_token(user=user)
 
     new_token = UserRefreshToken(

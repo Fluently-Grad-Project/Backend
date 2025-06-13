@@ -42,6 +42,10 @@ black .
 ```bash
 flake8 . --exclude=env,.venv,venv --max-line-length=200 --ignore=E203,E262,W291,W503
 ```   
+
+```bash
+mypy app --exclude '(env|.venv|venv)' --explicit-package-bases
+```   
 then fix these issues
 
 ----
@@ -76,6 +80,7 @@ alembic upgrade head
 ```bash
 
 alembic revision --autogenerate -m "add profile_pic"
+alembic revision --autogenerate -m "add UserRating table"
 ```
 then:
 ```bash
@@ -248,7 +253,7 @@ python -m uvicorn app.main:app --reload
 
 ---   
 
-## 7. Upload or Update Profile Picture
+### 7. Upload or Update Profile Picture
 
 * **Endpoint:** `POST /auth/upload-profile-picture`
 * **Authorization:** Bearer Token
@@ -497,3 +502,63 @@ Response:
 }
 ```
 > ***This should be called from the frontend when the user opens the chat***
+
+----
+
+
+## User Rating Endpoints
+
+### 1. **Rate a User**
+
+* **Endpoint:**
+  `POST http://127.0.0.1:8000/users/rate-user/{user_id}`
+  *(Replace `{user_id}` with the ID of the user you want to rate)*
+
+* **Authorization Required:** ✅ Bearer Token
+
+#### Headers:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+```
+
+#### Request Body:
+
+```json
+{
+  "rating": 2.5
+}
+```
+
+> 🟡 Allowed range is from **1** to **5**, floats are accepted (4.5)
+
+#### Response:
+
+```json
+{
+  "message": "Rating submitted successfully."
+}
+```
+
+---
+
+### 2. **Get Average Rating for a User**
+
+* **Endpoint:**
+  `GET http://127.0.0.1:8000/users/rating/{user_id}`
+  *(Replace `{user_id}` with the rated user’s ID)*
+
+* **Authorization Required:** None
+
+#### Response:
+
+```json
+{
+  "user_id": 2,
+  "average_rating": 3.6,
+  "count": 5
+}
+```
+
+> ℹ️ `count` is the number of users who rated this user

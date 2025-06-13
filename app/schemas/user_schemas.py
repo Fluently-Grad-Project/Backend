@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, conint
 
 from app.database.models import GenderEnum
 
@@ -77,3 +77,7 @@ class MatchedUserResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class UserRatingCreate(BaseModel):
+    rating: float = Field(..., ge=1, le=5)

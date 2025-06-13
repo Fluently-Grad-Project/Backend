@@ -116,7 +116,7 @@ def accept_friend_request(db: Session, receiver_id: int, sender_id: int):
     )
 
     request.status = FriendRequestStatus.ACCEPTED
-    request.updated_at = datetime.utcnow()
+    request.sent_at = datetime.utcnow()
 
     db.add_all([friendship1, friendship2, request])
     db.commit()
@@ -145,7 +145,7 @@ def reject_friend_request(db: Session, receiver_id: int, sender_id: int):
         )
 
     request.status = FriendRequestStatus.REJECTED
-    request.updated_at = datetime.utcnow()
+    request.sent_at = datetime.utcnow()
     db.commit()
 
     return {"detail": "Friend request rejected successfully"}

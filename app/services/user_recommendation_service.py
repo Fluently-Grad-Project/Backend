@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 
 import pandas as pd
 import sqlalchemy
@@ -12,8 +12,11 @@ from sqlalchemy.orm import Session
 from app.database.models import MatchMaking, UserData, UserManager
 from app.schemas.user_schemas import MatchedUserResponse
 
-similar_users_cache = TTLCache(maxsize=128, ttl=300)
-user_details_cache = TTLCache(maxsize=256, ttl=300)
+
+similar_users_cache: TTLCache[Tuple[int, int], List[Tuple[int, float]]] = TTLCache(
+    maxsize=128, ttl=300
+)
+user_details_cache: TTLCache[int, Dict[str, Any]] = TTLCache(maxsize=256, ttl=300)
 
 
 @cached(similar_users_cache)
@@ -130,7 +133,7 @@ def get_user_details(user_id: int, db: Session) -> dict:
     )
 
     if not user:
-        return None
+        return {}
 
     user_data, interests, rating, birth_date, gender = user
     current_date = datetime.now()

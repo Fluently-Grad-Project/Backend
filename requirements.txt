@@ -25,3 +25,11 @@ isort
 autoflake
 python-multipart
 flake8
+mypy
+sqlalchemy[mypy]
+pandas-stubs
+types-cachetools
+types-python
+jose
+types-bleach
+bandit

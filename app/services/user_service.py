@@ -58,7 +58,24 @@ def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataRespons
     db.add(UserManager(user_data_id=db_user.id))
 
     verification = save_verification_code(db, db_user.id, verification_code)
-    return db_user, verification.code
+
+    user_response = UserDataResponse(
+        id=db_user.id,
+        first_name=db_user.first_name,
+        last_name=db_user.last_name,
+        email=db_user.email,
+        full_name=f"{db_user.first_name} {db_user.last_name}",
+        gender=str(db_user.gender) if db_user.gender else None,
+        is_verified=db_user.is_verified,
+        is_active=db_user.is_active,
+        profile_image=db_user.profile_image,
+        interests=(
+            db_user.matchmaking_attributes.interests
+            if db_user.matchmaking_attributes
+            else None
+        ),
+    )
+    return user_response, verification.code
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[UserData]:

@@ -23,10 +23,6 @@ def get_friends_leaderboard(
 ):
     offset = (page - 1) * page_size
 
-    friend_ids_subquery = (
-        db.query(Friendship.friend_id).filter(Friendship.user_id == user_id).subquery()
-    )
-
     return (
         db.query(
             UserData.first_name,
@@ -34,7 +30,11 @@ def get_friends_leaderboard(
             func.coalesce(ActivityTracker.number_of_hours, 0).label("number_of_hours"),
         )
         .outerjoin(ActivityTracker, UserData.id == ActivityTracker.user_id)
-        .filter(UserData.id.in_(friend_ids_subquery))
+        .filter(
+            UserData.id.in_(
+                db.query(Friendship.friend_id).filter(Friendship.user_id == user_id)
+            )
+        )
         .order_by(desc("number_of_hours"))
         .offset(offset)
         .limit(page_size)

@@ -1,21 +1,24 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import bcrypt
-from fastapi import Depends, HTTPException, Query, WebSocket, requests, status
+
+# import requests
+from fastapi import Depends, HTTPException, Query, WebSocket, logger, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import jwt
+from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError
 from sqlalchemy.orm import Session
 
 from app.core.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ALGORITHM,
-    RECAPTCH_KEY,
     SECRET_KEY,
 )
 from app.database.connection import get_db
 from app.database.models import UserData
+from app.schemas.user_schemas import UserDataResponse
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -34,17 +37,19 @@ def verify_password_strength(password: str) -> bool:
 
 
 ################
-def verify_recaptcha(token: str) -> bool:
-    secret_key = RECAPTCH_KEY
-    response = requests.post(
-        "https://www.google.com/recaptcha/api/siteverify",
-        data={"secret": secret_key, "response": token},
-    )
-    result = response.json()
-    return result.get("success", False)
+# def verify_recaptcha(token: str) -> bool:
+#     secret_key = RECAPTCH_KEY
+#     response = requests.post(
+#         "https://www.google.com/recaptcha/api/siteverify",
+#         data={"secret": secret_key, "response": token},
+#     )
+#     result = response.json()
+#     return result.get("success", False)
 
 
-def create_access_token(user: UserData, expires_delta: timedelta = None) -> str:
+def create_access_token(
+    user: UserDataResponse, expires_delta: Optional[timedelta] = None
+) -> str:
     to_encode = {
         # "sub": user,
         "user_id": user.id,
@@ -59,7 +64,7 @@ def create_access_token(user: UserData, expires_delta: timedelta = None) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_refresh_token(user: UserData, expires_delta: timedelta = None):
+def create_refresh_token(user: UserData, expires_delta: Optional[timedelta] = None):
     try:
         to_encode = {"sub": user.email, "user_id": user.id}
         if expires_delta:
@@ -69,19 +74,21 @@ def create_refresh_token(user: UserData, expires_delta: timedelta = None):
         to_encode.update({"exp": expire})
         token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return token
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Refresh token expired")
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
 def decode_token(token: str, token_type: str) -> Dict[str, Any]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload if "sub" in payload else None
-    except jwt.ExpiredSignatureError:
+        if "sub" not in payload:
+            raise HTTPException(status_code=401, detail=f"Invalid {token_type} token")
+        return payload
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail=f"{token_type} Token expired")
-    except jwt.InvalidTokenError:
+    except JWTClaimsError:
         raise HTTPException(status_code=401, detail=f"Invalid {token_type} token")
 
 
@@ -98,8 +105,8 @@ def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("email")
-        if email is None:
+        email = payload.get("email")
+        if not isinstance(email, str):
             raise e
     except JWTError:
         try:
@@ -111,7 +118,8 @@ def get_current_user(
                     user.is_active = False
                     db.commit()
         except Exception:
-            pass
+            logger.error(f"Unexpected error: {e}")
+            raise
 
         raise e
 
@@ -125,7 +133,7 @@ def get_current_user(
 async def get_current_user_ws(websocket: WebSocket, token: str = Query(...)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        user_id: int = payload.get("user_id")
+        user_id = payload.get("user_id")
         if user_id is None:
             raise ValueError()
     except JWTError:

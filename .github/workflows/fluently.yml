@@ -42,32 +42,48 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
 
-      # ---------- lint ----------
+      # ---------- Lint ----------
       - name: Lint with flake8
         run: |
           pip install flake8
           flake8 . --max-line-length=200 --ignore=E203,E262,W291,W503
 
-
-      # ---------- type checking ----------
+      # ---------- Type Checking ----------
       - name: Type check with mypy
         run: |
           pip install mypy
-          mypy app --explicit-package-bases
+          mypy app
 
-      # ---------- format check ----------
+      # ---------- Format Check ----------
       - name: Check code formatting with black
         run: |
           pip install black
           black --check app tests
 
-      # ---------- Security scan ----------
+      # ---------- Dependency Security ----------
       - name: Security audit with pip-audit
         run: |
           pip install pip-audit
           pip-audit
 
-      # ---------- Test section ----------
+      # ---------- Static Analysis ----------
+      - name: Static analysis with Bandit
+        run: |
+          pip install bandit
+          bandit -r app -x tests
+
+      - name: Run SAST with Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/ci
+
+      # ---------- Secret Detection ----------
+      - name: Detect secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: "--verbose --redact"
+
+      # ---------- Tests ----------
       # - name: Run tests with pytest
       #   run: |
       #     pip install pytest pytest-cov

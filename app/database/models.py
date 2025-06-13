@@ -7,7 +7,6 @@ from pydantic_settings import BaseSettings
 from sqlalchemy import (
     ARRAY,
     Boolean,
-    Column,
     Date,
     DateTime,
     Enum,
@@ -15,12 +14,14 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 
-BaseORM = declarative_base()
+
+class BaseORM(DeclarativeBase):
+    pass
 
 
 class GenderEnum(enum.Enum):
@@ -38,19 +39,19 @@ class ProficiencyLevel(enum.Enum):
 class UserData(BaseORM):
     __tablename__ = "user_data"
 
-    id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String)
-    last_name = Column(String)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    gender = Column(Enum(GenderEnum))
-    birth_date = Column(Date, nullable=True)
-    is_active = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    is_verified = Column(Boolean, default=False)
-    is_locked = Column(Boolean, default=False)
-    failed_attempts = Column(Integer, nullable=True)
-    profile_image = Column(String, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    first_name: Mapped[str] = mapped_column(String)
+    last_name: Mapped[str] = mapped_column(String)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String)
+    gender: Mapped[Optional[GenderEnum]] = mapped_column(Enum(GenderEnum))
+    birth_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_locked: Mapped[bool] = mapped_column(Boolean, default=False)
+    failed_attempts: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    profile_image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     matchmaking_attributes = relationship(
         "MatchMaking", back_populates="user", uselist=False
@@ -87,12 +88,12 @@ class UserData(BaseORM):
 class MatchMaking(BaseORM):
     __tablename__ = "matchmaking"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user_data.id"))
-    languages = Column(ARRAY(String))
-    practice_frequency = Column(String)
-    interests = Column(JSON)
-    proficiency_level = Column(Enum(ProficiencyLevel))
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_data.id"))
+    languages: Mapped[list[str]] = mapped_column(ARRAY(String))
+    practice_frequency: Mapped[str] = mapped_column(String)
+    interests: Mapped[dict] = mapped_column(JSON)
+    proficiency_level: Mapped[ProficiencyLevel] = mapped_column(Enum(ProficiencyLevel))
 
     user = relationship("UserData", back_populates="matchmaking_attributes")
 
@@ -100,10 +101,10 @@ class MatchMaking(BaseORM):
 class ActivityTracker(BaseORM):
     __tablename__ = "activity_tracker"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user_data.id"))
-    streaks = Column(Integer)
-    number_of_hours = Column(Integer)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_data.id"))
+    streaks: Mapped[int] = mapped_column(Integer)
+    number_of_hours: Mapped[int] = mapped_column(Integer)
 
     user = relationship("UserData", back_populates="activity_tracker")
 
@@ -117,11 +118,17 @@ class FriendRequestStatus(enum.Enum):
 class FriendRequest(BaseORM):
     __tablename__ = "friend_requests"
 
-    id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
-    receiver_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
-    status = Column(Enum(FriendRequestStatus), default=FriendRequestStatus.PENDING)
-    sent_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    sender_id: Mapped[int] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE")
+    )
+    receiver_id: Mapped[int] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE")
+    )
+    status: Mapped[FriendRequestStatus] = mapped_column(
+        Enum(FriendRequestStatus), default=FriendRequestStatus.PENDING
+    )
+    sent_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     sender = relationship(
         "UserData", foreign_keys=[sender_id], back_populates="sent_requests"
@@ -134,24 +141,24 @@ class FriendRequest(BaseORM):
 class UserManager(BaseORM):
     __tablename__ = "user_manager"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_data_id = Column(
-        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), nullable=True
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_data_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE"), nullable=True
     )
-    rating = Column(Float)
+    rating: Mapped[float] = mapped_column(Float)
 
     user_data = relationship("UserData", back_populates="user_manager")
 
 
 class Friendship(BaseORM):
     __tablename__ = "friendship"
-    created_at = Column(DateTime, default=datetime.utcnow)
 
-    user_id = Column(
-        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), primary_key=True
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE"), primary_key=True
     )
-    friend_id = Column(
-        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), primary_key=True
+    friend_id: Mapped[int] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE"), primary_key=True
     )
 
 
@@ -182,16 +189,16 @@ class RefreshToken(BaseModel):
 class UserRefreshToken(BaseORM):
     __tablename__ = "user_refresh_tokens"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(
-        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), nullable=False
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE"), nullable=False
     )
-    refresh_token = Column(String, nullable=True)
-    jwt_id = Column(String, nullable=True)
-    is_used = Column(Boolean, default=False)
-    is_revoked = Column(Boolean, default=False)
-    added_time = Column(DateTime, default=datetime.utcnow)
-    expiry_time = Column(DateTime)
+    refresh_token: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    jwt_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    added_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    expiry_time: Mapped[datetime] = mapped_column(DateTime)
 
     user = relationship("UserData", back_populates="user_refresh_tokens")
 
@@ -203,10 +210,10 @@ class TokenData(BaseModel):
 class VerificationCode(BaseORM):
     __tablename__ = "verification_codes"
 
-    id = Column(Integer, primary_key=True, index=True)
-    code = Column(String, unique=True, index=True)
-    user_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
-    expiry_time = Column(
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String, unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_data.id", ondelete="CASCADE"))
+    expiry_time: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.utcnow() + timedelta(minutes=10)
     )
 
@@ -216,14 +223,31 @@ class VerificationCode(BaseORM):
 class ChatMessage(BaseORM):
     __tablename__ = "chat_messages"
 
-    id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
-    receiver_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
-    message = Column(String, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    status = Column(
-        String, default="sent", nullable=False
-    )  #'sent', 'delivered', 'read'
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    sender_id: Mapped[int] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE")
+    )
+    receiver_id: Mapped[int] = mapped_column(
+        ForeignKey("user_data.id", ondelete="CASCADE")
+    )
+    message: Mapped[str] = mapped_column(String, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    status: Mapped[str] = mapped_column(String, default="sent", nullable=False)
 
     sender = relationship("UserData", foreign_keys=[sender_id])
     receiver = relationship("UserData", foreign_keys=[receiver_id])
+
+
+
+class UserRating(BaseORM):
+    __tablename__ = "user_ratings"
+
+    id: Mapped[int]=mapped_column(primary_key=True, index=True)
+    rater_id : Mapped[int] = mapped_column(ForeignKey("user_data.id"), nullable=False)
+    ratee_id : Mapped[int] = mapped_column(ForeignKey("user_data.id"), nullable=False)
+    rating : Mapped[float] = mapped_column(nullable=False)
+
+    __table_args__ = (UniqueConstraint("rater_id", "ratee_id", name="_unique_rater_ratee"),)
+
+    rater = relationship("UserData", foreign_keys=[rater_id])
+    ratee = relationship("UserData", foreign_keys=[ratee_id])
