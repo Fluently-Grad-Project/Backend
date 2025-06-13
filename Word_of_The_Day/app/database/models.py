@@ -1,16 +1,18 @@
 from datetime import datetime
+
 from sqlalchemy import (
+    Boolean,
     Column,
+    Date,
+    DateTime,
+    ForeignKey,
     Integer,
     String,
-    DateTime,
-    Boolean,
-    ForeignKey,
     Text,
-    Date,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
 from app.database.base import Base
 
 Base = declarative_base()

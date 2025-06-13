@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
+
 from app.database.models import ActivityTracker, Friendship, UserData
 
 

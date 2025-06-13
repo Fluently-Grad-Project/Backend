@@ -1,16 +1,16 @@
 from operator import or_
 from typing import List
+
 import bleach
-from fastapi import APIRouter, HTTPException, WebSocket, Depends, Query
-from app.core.websocket_manager import manager
-from app.core.auth_manager import get_current_user, get_current_user_ws
-from app.database.models import ChatMessage, UserData
-from app.database.connection import get_db
-from app.schemas.chat_schemas import ChatMessageResponse
-from app.schemas.chat_schemas import UserContact
-from app.services.chat_service import mark_messages_as_delivered
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from sqlalchemy.orm import Session
 
+from app.core.auth_manager import get_current_user, get_current_user_ws
+from app.core.websocket_manager import manager
+from app.database.connection import get_db
+from app.database.models import ChatMessage, UserData
+from app.schemas.chat_schemas import ChatMessageResponse, UserContact
+from app.services.chat_service import mark_messages_as_delivered
 
 router = APIRouter()
 

@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, status
-from app.schemas.user_schemas import UserDataCreate, UserDataResponse, RegisterResponse
-from app.services.user_service import get_user_by_email, create_user
-from app.core.auth_manager import create_access_token
 import logging
-from fastapi import BackgroundTasks
-from app.services.email_service import send_verification_email
-from app.core.config import BASE_URL
+
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+from app.core.auth_manager import create_access_token
+from app.core.config import BASE_URL
 from app.database.connection import get_db
+from app.schemas.user_schemas import RegisterResponse, UserDataCreate, UserDataResponse
+from app.services.email_service import send_verification_email
+from app.services.user_service import create_user, get_user_by_email
 
 router = APIRouter()
 

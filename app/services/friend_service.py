@@ -1,8 +1,10 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
 from datetime import datetime
 from typing import List
-from app.database.models import FriendRequest, Friendship, UserData, FriendRequestStatus
+
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.database.models import FriendRequest, FriendRequestStatus, Friendship, UserData
 
 
 def validate_user_exists(db: Session, user_id: int):

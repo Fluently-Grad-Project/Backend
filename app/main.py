@@ -1,10 +1,11 @@
+import logging
+
 from fastapi import FastAPI
-from app.api import user, auth, friend_routes, leaderboard_routes
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api import auth, friend_routes, leaderboard_routes, matchmaking_routes, user
 from app.api.chat import router as chat_router
 from app.core.websocket_manager import ConnectionManager
-from fastapi.middleware.cors import CORSMiddleware
-from app.api import matchmaking_routes
-import logging
 
 logging.basicConfig(
     filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s"

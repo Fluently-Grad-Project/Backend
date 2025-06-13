@@ -1,12 +1,13 @@
-from app.database.models import WordOfTheDay, DailyWord, FCMToken
-from sqlalchemy.orm import Session
+from datetime import date
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from app.database.connection import get_db
-from fastapi import Depends, HTTPException
-from datetime import date
+from fastapi import HTTPException
 from sqlalchemy import func
-from app.Notification.fcm import send_word_notification, WordOfTheDayPayload
+from sqlalchemy.orm import Session
+
+from app.database.models import DailyWord, FCMToken, WordOfTheDay
+from app.Notification.fcm import WordOfTheDayPayload, send_word_notification
 
 
 def insert_word_of_the_day_data(db: Session):

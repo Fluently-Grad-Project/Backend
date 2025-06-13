@@ -1,13 +1,11 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
-from typing import Optional, Tuple
-from datetime import datetime, timedelta
 import secrets
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
 
-from app.core.auth_manager import (
-    verify_password,
-    get_password_hash,
-)
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.core.auth_manager import get_password_hash, verify_password
 from app.database.models import MatchMaking, UserData, UserManager, VerificationCode
 from app.schemas.user_schemas import UserDataCreate, UserDataResponse
 

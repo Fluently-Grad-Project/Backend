@@ -5,19 +5,19 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
+    ARRAY,
     Boolean,
-    ForeignKey,
+    Column,
+    Date,
+    DateTime,
     Enum,
     Float,
-    Date,
-    ARRAY,
+    ForeignKey,
+    Integer,
+    String,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
 
 # from app.database.base import Base

@@ -8,9 +8,9 @@ Create Date: 2025-06-13 04:58:02.802084
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "1f3e700925fd"
@@ -20,10 +20,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade():
-    op.add_column(
-        "user_data",
-        sa.Column("is_locked", sa.Boolean(), nullable=True, server_default="false"),
-    )
+    # op.add_column(
+    #     "user_data",
+    #     sa.Column("is_locked", sa.Boolean(), nullable=True, server_default="false"),
+    # )
+    pass
 
 
 def downgrade():

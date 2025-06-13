@@ -1,5 +1,6 @@
-from app.database.models import ChatMessage
 from sqlalchemy.orm import Session
+
+from app.database.models import ChatMessage
 
 
 def mark_messages_as_delivered(db: Session, receiver_id: int, sender_id: int):

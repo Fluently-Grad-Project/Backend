@@ -1,13 +1,13 @@
-import os
-import requests
 import json
-from google.oauth2 import service_account
-from google.auth.transport.requests import Request
-from pydantic import BaseModel
 from typing import Optional
-from fastapi import FastAPI, APIRouter
-from fastapi import Depends
+
+import requests
+from fastapi import APIRouter, Depends, FastAPI
+from google.auth.transport.requests import Request
+from google.oauth2 import service_account
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+
 from app.database.connection import get_db
 from app.database.models import FCMToken
 

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
 from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.database.connection import get_db
 from app.database.models import DailyWord
-from fastapi import HTTPException
 
 router = APIRouter()
 

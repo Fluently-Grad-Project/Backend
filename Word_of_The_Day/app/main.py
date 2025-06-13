@@ -1,18 +1,19 @@
-from fastapi import FastAPI
-from app.api import word
-from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
-from app.Notification import fcm
-from app.database.connection import get_db
-from sqlalchemy.orm import Session
-from app.services.word_service import (
-    insert_word_of_the_day_data,
-    assign_todays_word,
-    send_daily_word_notification,
-)
+from datetime import datetime
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from datetime import datetime
+from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+
+from app.api import word
+from app.database.connection import get_db
+from app.Notification import fcm
+from app.services.word_service import (
+    assign_todays_word,
+    insert_word_of_the_day_data,
+    send_daily_word_notification,
+)
 
 app = FastAPI()
 app.add_middleware(

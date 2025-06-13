@@ -1,19 +1,21 @@
-from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
 from typing import Any, Dict
+
 from fastapi import Depends, HTTPException, Query, WebSocket, requests, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
-from app.database.connection import get_db
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from app.database.models import UserData
+
 from app.core.config import (
-    SECRET_KEY,
-    ALGORITHM,
-    pwd_context,
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    ALGORITHM,
     RECAPTCH_KEY,
+    SECRET_KEY,
+    pwd_context,
 )
+from app.database.connection import get_db
+from app.database.models import UserData
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

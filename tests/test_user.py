@@ -1,9 +1,11 @@
-import pytest
-from fastapi.testclient import TestClient
-from fastapi import status
 from unittest.mock import MagicMock, patch
-from app.main import app
+
+import pytest
+from fastapi import status
+from fastapi.testclient import TestClient
+
 from app.api.user import router
+from app.main import app
 
 app.include_router(router)
 

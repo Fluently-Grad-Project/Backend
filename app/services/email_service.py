@@ -1,7 +1,8 @@
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from app.core.config import SMTP_HOST, SMTP_PORT, SMTP_PASSWORD, SMTP_USER, EMAIL_FROM
+from email.mime.text import MIMEText
+
+from app.core.config import EMAIL_FROM, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER
 
 
 async def send_verification_email(email: str, verification_link: str):

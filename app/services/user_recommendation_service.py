@@ -1,14 +1,16 @@
-from cachetools import TTLCache, cached
 from datetime import datetime
-import sqlalchemy
-import pandas as pd
 from typing import List, Tuple
-from sklearn.preprocessing import MultiLabelBinarizer, MinMaxScaler
-from sklearn.metrics.pairwise import cosine_similarity
-from app.schemas.user_schemas import MatchedUserResponse
-from app.database.models import UserData, MatchMaking, UserManager
-from sqlalchemy.orm import Session
+
+import pandas as pd
+import sqlalchemy
+from cachetools import TTLCache, cached
 from fastapi import HTTPException
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import MinMaxScaler, MultiLabelBinarizer
+from sqlalchemy.orm import Session
+
+from app.database.models import MatchMaking, UserData, UserManager
+from app.schemas.user_schemas import MatchedUserResponse
 
 similar_users_cache = TTLCache(maxsize=128, ttl=300)
 user_details_cache = TTLCache(maxsize=256, ttl=300)

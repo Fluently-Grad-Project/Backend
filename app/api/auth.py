@@ -1,14 +1,27 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 from typing import Any, Dict
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from app.performance.time_tracker import track_time
-from sqlalchemy.orm import Session
+
+# from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.core.auth_manager import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    get_password_hash,
+)
+from app.core.config import pwd_context
 from app.database.connection import get_db
 from app.database.models import UserData, UserRefreshToken, VerificationCode
+from app.performance.time_tracker import track_time
 from app.schemas.user_schemas import (
     LoginRequest,
     PasswordResetRequest,
@@ -19,20 +32,7 @@ from app.services.user_service import (
     authenticate_user,
     get_user_by_email,
     request_password_reset,
-    verify_email,
 )
-from app.core.auth_manager import (
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-    get_password_hash,
-)
-from app.core.config import pwd_context
-
-
-# from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)

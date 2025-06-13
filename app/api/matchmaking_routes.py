@@ -1,12 +1,14 @@
 import logging
 from typing import List
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
+from app.core.auth_manager import get_current_user
 from app.database.connection import get_db
 from app.database.models import UserData
-from app.core.auth_manager import get_current_user
-from app.services.user_recommendation_service import get_similar_users_details
 from app.schemas.user_schemas import MatchedUserResponse
+from app.services.user_recommendation_service import get_similar_users_details
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
