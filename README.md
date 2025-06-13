@@ -24,7 +24,11 @@
 
 ----
 > ### Password Strength:
-> at least 8 characters, one lowercase, one uppercase, one digit
+>   - At least 8 characters
+    - At least 1 uppercase letter
+    - At least 1 lowercase letter  
+    - At least 1 number
+    - At least 1 special character
 ----
 
 🚨🚨🚨 **INSTALL/UPGRADE PYTHON 3.6.12**
