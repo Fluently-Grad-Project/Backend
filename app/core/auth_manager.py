@@ -118,7 +118,7 @@ def get_current_user(
                     user.is_active = False
                     db.commit()
         except Exception:
-            logger.error(f"Unexpected error: {e}")
+            # logger.error(f"Unexpected error: {e}")
             raise
 
         raise e

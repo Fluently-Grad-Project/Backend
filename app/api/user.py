@@ -15,7 +15,12 @@ from sqlalchemy.orm import Session
 from app.core.auth_manager import create_access_token
 from app.core.config import BASE_URL
 from app.database.connection import get_db
-from app.schemas.user_schemas import RegisterResponse, UserDataCreate, UserDataResponse, UserRatingCreate
+from app.schemas.user_schemas import (
+    RegisterResponse,
+    UserDataCreate,
+    UserDataResponse,
+    UserRatingCreate,
+)
 from app.services.email_service import send_verification_email
 from app.services.user_service import create_user, get_user_by_email
 import os
@@ -104,7 +109,6 @@ async def upload_profile_picture(
     }
 
 
-
 @router.post("/rate-user/{user_a_id}")
 def rate_user(
     user_a_id: int,
@@ -121,7 +125,9 @@ def rate_user(
 
     existing_rating = (
         db.query(UserRating)
-        .filter(UserRating.rater_id == current_user.id, UserRating.ratee_id == user_a_id)
+        .filter(
+            UserRating.rater_id == current_user.id, UserRating.ratee_id == user_a_id
+        )
         .first()
     )
 
@@ -129,9 +135,7 @@ def rate_user(
         existing_rating.rating = rating_data.rating
     else:
         new_rating = UserRating(
-            rater_id=current_user.id,
-            ratee_id=user_a_id,
-            rating=rating_data.rating
+            rater_id=current_user.id, ratee_id=user_a_id, rating=rating_data.rating
         )
         db.add(new_rating)
 

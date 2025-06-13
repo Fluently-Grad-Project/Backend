@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, EmailStr, Field, conint
+from pydantic import BaseModel, EmailStr, Field
 
 from app.database.models import GenderEnum
 

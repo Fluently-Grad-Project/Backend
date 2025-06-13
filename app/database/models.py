@@ -238,16 +238,17 @@ class ChatMessage(BaseORM):
     receiver = relationship("UserData", foreign_keys=[receiver_id])
 
 
-
 class UserRating(BaseORM):
     __tablename__ = "user_ratings"
 
-    id: Mapped[int]=mapped_column(primary_key=True, index=True)
-    rater_id : Mapped[int] = mapped_column(ForeignKey("user_data.id"), nullable=False)
-    ratee_id : Mapped[int] = mapped_column(ForeignKey("user_data.id"), nullable=False)
-    rating : Mapped[float] = mapped_column(nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    rater_id: Mapped[int] = mapped_column(ForeignKey("user_data.id"), nullable=False)
+    ratee_id: Mapped[int] = mapped_column(ForeignKey("user_data.id"), nullable=False)
+    rating: Mapped[float] = mapped_column(nullable=False)
 
-    __table_args__ = (UniqueConstraint("rater_id", "ratee_id", name="_unique_rater_ratee"),)
+    __table_args__ = (
+        UniqueConstraint("rater_id", "ratee_id", name="_unique_rater_ratee"),
+    )
 
     rater = relationship("UserData", foreign_keys=[rater_id])
     ratee = relationship("UserData", foreign_keys=[ratee_id])
