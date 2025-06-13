@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Union
 from app.database.models import GenderEnum
 
+
 class UserBase(BaseModel):
     first_name: str
     last_name: str
@@ -60,6 +61,8 @@ class UpdatePasswprdRequest(BaseModel):
     email: str
     new_password: str
     code: str
+
+
 class MatchedUserResponse(BaseModel):
     user_id: int
     username: str
@@ -68,5 +71,6 @@ class MatchedUserResponse(BaseModel):
     age: int
     gender: GenderEnum
     similarity_score: float
+
     class Config:
         orm_mode = True

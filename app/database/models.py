@@ -29,6 +29,8 @@ class GenderEnum(enum.Enum):
     MALE = "male"
     FEMALE = "female"
     OTHER = "other"
+
+
 class ProficiencyLevel(enum.Enum):
     BEGINNER = "Beginner"
     INTERMEDIATE = "Intermediate"

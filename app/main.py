@@ -35,4 +35,6 @@ app.include_router(
 )
 manager = ConnectionManager()
 app.include_router(chat_router)
-app.include_router(matchmaking_routes.router, prefix="/matchmaking", tags=["Matchmaking"])
+app.include_router(
+    matchmaking_routes.router, prefix="/matchmaking", tags=["Matchmaking"]
+)
