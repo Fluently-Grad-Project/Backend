@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, friend_routes, leaderboard_routes, matchmaking_routes, user
 from app.api.chat import router as chat_router
 from app.core.websocket_manager import ConnectionManager
+from fastapi.staticfiles import StaticFiles
 
 logging.basicConfig(
     filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s"
@@ -14,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 app = FastAPI()
+
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 app.add_middleware(

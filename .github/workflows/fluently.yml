@@ -53,7 +53,7 @@ jobs:
       - name: Type check with mypy
         run: |
           pip install mypy
-          mypy app
+          mypy app --explicit-package-bases
 
       # ---------- format check ----------
       - name: Check code formatting with black

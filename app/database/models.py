@@ -50,6 +50,7 @@ class UserData(BaseORM):
     is_verified = Column(Boolean, default=False)
     is_locked = Column(Boolean, default=False)
     failed_attempts = Column(Integer, nullable=True)
+    profile_image = Column(String, nullable=True)
 
     matchmaking_attributes = relationship(
         "MatchMaking", back_populates="user", uselist=False

@@ -23,14 +23,18 @@
 >     - Don’t store tokens or passwords in your GitHub   
 
 ----
-# Password Strength:
+> ### Password Strength:
 > at least 8 characters, one lowercase, one uppercase, one digit
 ----
 
+🚨🚨🚨 **INSTALL/UPGRADE PYTHON 3.6.12**
+```bash
+black app/ tests/
+```
 ## 📌📌📌📌
 # ***BEFORE COMMITTING***
 
-## To ensure we're sticking to standard format:
+## **Run this to solve the flake8 errors, *to autoformat*:**
 ```bash 
 black . 
 ```   
@@ -51,15 +55,12 @@ then fix these issues
 ```bash
 $env:PYTHONPATH = "."
 pytest --cov=app tests/
+```   
+
+----  
+
 ```
 
-**Run this to solve the flake8 errors, *to autoformat*:**   
-🚨🚨🚨 **INSTALL/UPGRADE PYTHON 3.6.12**
-```bash
-black app/ tests/
-```
-
-----    
 ## Update the models using these:
 
 ```bash
@@ -70,15 +71,17 @@ then:
 ```bash
 alembic upgrade head
 ```
-## To update The proficiency_level field in matchmaking table run the following commands but make sure that the Database is up-to-data
+
+## 🚨🚨🚨 DB Update
 ```bash
 
-alembic revision --autogenerate -m "Add proficiency_level to matchmaking"
+alembic revision --autogenerate -m "add profile_pic"
 ```
 then:
 ```bash
 alembic upgrade head
 ```
+
 
 ##  How to Run the Backend
 >go to the project main directory and create virtual environment using the following command:
@@ -121,7 +124,7 @@ python -m uvicorn app.main:app --reload
   "gender": "FEMALE",
   "birth_date": "2003-06-18",
   "languages": ["English", "Turkish"],
-  "proficiency_level": "INTERMEDIATE",
+  "proficiency_level": "Intermediate",
   "practice_frequency": "15",
   "interests": ["Reading", "Traveling"]
 }
@@ -238,6 +241,32 @@ python -m uvicorn app.main:app --reload
   "message": "Password reset successfully"
 }
 ```
+
+---   
+
+### 6. Refresh Token    
+
+---   
+
+## 7. Upload or Update Profile Picture
+
+* **Endpoint:** `POST /auth/upload-profile-picture`
+* **Authorization:** Bearer Token
+
+#### Request Body (form-data):
+
+| Key  | Type |  Description             |
+|------|------|--------------------------|
+| file | File | Your profile image file (jpg/png/jpeg) |
+
+#### Response:
+
+```json
+{
+  "message": "Profile picture uploaded successfully",
+  "image_path": "/uploads/profile_pics/xxxxxxxx.png"
+}
+
 
 
 --------------------------------------------
@@ -466,50 +495,5 @@ Response:
 {
   "message": "Messages marked as read"
 }
-```
-## Matchmaking endpoint
-**Endpoint:** GET http://127.0.0.1:8000/matchmaking/get-matched-users?n_recommendations=5
-
-**Headers:**
-
-Authorization: Bearer YOUR_JWT_TOKEN
-####  Response Example
-```json
-[
-    {
-        "user_id": 2,
-        "username": "m a",
-        "interests": ["Reading","Traveling"],
-        "rating": null,
-        "age": 21,
-        "gender": "female",
-        "similarity_score": 1.0
-    },
-    {
-        "user_id": 8,
-        "username": "m a",
-        "interests": [
-            "Travel"
-        ],
-        "rating": null,
-        "age": 21,
-        "gender": "female",
-        "similarity_score": 0.5773502691896258
-    },
-    {
-        "user_id": 6,
-        "username": "a b",
-        "interests": [
-            "Cars and automobiles",
-            "Politics",
-            "Travel"
-        ],
-        "rating": null,
-        "age": 47,
-        "gender": "female",
-        "similarity_score": 0.0
-    }
-]
-
 ```
 > ***This should be called from the frontend when the user opens the chat***

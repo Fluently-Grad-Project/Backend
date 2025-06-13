@@ -23,3 +23,5 @@ pandas
 cachetools
 isort
 autoflake
+python-multipart
+flake8

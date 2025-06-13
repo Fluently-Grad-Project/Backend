@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.database.models import Base
+from app.database.models import BaseORM
 
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql://postgres:12345678@localhost/fluently"
@@ -21,4 +21,4 @@ def get_db():
 
 # to only create tables during local/dev environments
 if os.getenv("ENV") != "production":
-    Base.metadata.create_all(bind=engine)
+    BaseORM.metadata.create_all(bind=engine)

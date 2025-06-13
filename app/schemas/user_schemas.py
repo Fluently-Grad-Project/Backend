@@ -38,6 +38,7 @@ class UserDataResponse(BaseModel):
     is_verified: bool
     full_name: Optional[str] = None
     is_active: bool
+    profile_image: Optional[str] = None
     interests: Optional[Union[List[str], dict]] = None
 
     class Config:

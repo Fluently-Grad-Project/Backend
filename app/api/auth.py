@@ -17,8 +17,8 @@ from app.core.auth_manager import (
     create_refresh_token,
     decode_token,
     get_password_hash,
+    verify_password,
 )
-from app.core.config import pwd_context
 from app.database.connection import get_db
 from app.database.models import UserData, UserRefreshToken, VerificationCode
 from app.performance.time_tracker import track_time
@@ -73,7 +73,7 @@ async def login(
                 status_code=403, content={"message": "Email not verified"}
             )
 
-        if not pwd_context.verify(password, user.hashed_password):
+        if not verify_password(password, user.hashed_password):
             user.failed_attempts += 1
             db.commit()
 
@@ -102,6 +102,7 @@ async def login(
             full_name=f"{user.first_name} {user.last_name}",
             is_verified=user.is_verified,
             is_active=user.is_active,
+            profile_image=user.profile_image,
             interests=(
                 user.matchmaking_attributes.interests
                 if user.matchmaking_attributes
