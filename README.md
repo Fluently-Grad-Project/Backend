@@ -458,6 +458,7 @@ Response:
 
 Authorization: Bearer YOUR_JWT_TOKEN
 ####  Response Example
+```json
 [
     {
         "user_id": 2,
@@ -494,4 +495,5 @@ Authorization: Bearer YOUR_JWT_TOKEN
     }
 ]
 
+```
 > ***This should be called from the frontend when the user opens the chat***
