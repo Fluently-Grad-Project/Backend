@@ -454,6 +454,7 @@ Response:
 ```
 ## Matchmaking endpoint
 **Endpoint:** GET/matchmaking/get-matched-users?n_recommendations=5
+
 **Headers:**
 
 Authorization: Bearer YOUR_JWT_TOKEN
