@@ -16,15 +16,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-def register_user(background_tasks: BackgroundTasks, user: UserDataCreate = Body(...), db: Session = Depends(get_db)):
+@router.post(
+    "/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED
+)
+def register_user(
+    background_tasks: BackgroundTasks,
+    user: UserDataCreate = Body(...),
+    db: Session = Depends(get_db),
+):
     try:
         existing_user = get_user_by_email(db, user.email)
         if existing_user:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, 
-                detail="Email already exists"
-            )        
+                status_code=status.HTTP_409_CONFLICT, detail="Email already exists"
+            )
         db_user, verification_code = create_user(db, user)
 
         verification_link = f"{BASE_URL}/auth/verify-email?email={db_user.email}&code={verification_code}"
@@ -34,15 +39,17 @@ def register_user(background_tasks: BackgroundTasks, user: UserDataCreate = Body
         background_tasks.add_task(
             send_verification_email,
             email=db_user.email,
-            verification_link=verification_link
+            verification_link=verification_link,
         )
 
         return {
             "user": UserDataResponse.from_orm(db_user),
             "access_token": access_token,
-            "verification_link": verification_link
+            "verification_link": verification_link,
         }
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"An error occurred during registration: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"An error occurred during registration: {str(e)}"
+        )

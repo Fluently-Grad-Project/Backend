@@ -4,7 +4,18 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Enum, Float, Date, ARRAY
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Boolean,
+    ForeignKey,
+    Enum,
+    Float,
+    Date,
+    ARRAY,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import JSON
@@ -20,7 +31,7 @@ class GenderEnum(enum.Enum):
 
 
 class UserData(Base):
-    __tablename__ = 'user_data'
+    __tablename__ = "user_data"
 
     id = Column(Integer, primary_key=True, index=True)
     first_name = Column(String)
@@ -35,38 +46,60 @@ class UserData(Base):
     is_locked = Column(Boolean, default=False)
     failed_attempts = Column(Integer, nullable=True)
 
-    matchmaking_attributes = relationship('MatchMaking', back_populates='user', uselist=False)
-    activity_tracker = relationship('ActivityTracker', back_populates='user', uselist=False)
-    user_manager = relationship('UserManager', back_populates='user_data', uselist=False, cascade="all, delete-orphan", passive_deletes=True)
-    sent_requests = relationship('FriendRequest', foreign_keys='FriendRequest.sender_id', back_populates='sender')
-    received_requests = relationship('FriendRequest', foreign_keys='FriendRequest.receiver_id', back_populates='receiver')
-    user_refresh_tokens = relationship('UserRefreshToken', back_populates='user')
-    verification_codes = relationship('VerificationCode', back_populates='user')
-    friends = relationship( "UserData", secondary="friendship", primaryjoin="UserData.id==Friendship.user_id", secondaryjoin="UserData.id==Friendship.friend_id", backref="friend_of")
+    matchmaking_attributes = relationship(
+        "MatchMaking", back_populates="user", uselist=False
+    )
+    activity_tracker = relationship(
+        "ActivityTracker", back_populates="user", uselist=False
+    )
+    user_manager = relationship(
+        "UserManager",
+        back_populates="user_data",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    sent_requests = relationship(
+        "FriendRequest", foreign_keys="FriendRequest.sender_id", back_populates="sender"
+    )
+    received_requests = relationship(
+        "FriendRequest",
+        foreign_keys="FriendRequest.receiver_id",
+        back_populates="receiver",
+    )
+    user_refresh_tokens = relationship("UserRefreshToken", back_populates="user")
+    verification_codes = relationship("VerificationCode", back_populates="user")
+    friends = relationship(
+        "UserData",
+        secondary="friendship",
+        primaryjoin="UserData.id==Friendship.user_id",
+        secondaryjoin="UserData.id==Friendship.friend_id",
+        backref="friend_of",
+    )
 
 
 class MatchMaking(Base):
-    __tablename__ = 'matchmaking'
+    __tablename__ = "matchmaking"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user_data.id'))
+    user_id = Column(Integer, ForeignKey("user_data.id"))
     languages = Column(ARRAY(String))
     practice_frequency = Column(String)
     interests = Column(JSON)
     proficiency_level = Column(String)
 
-    user = relationship('UserData', back_populates='matchmaking_attributes')
+    user = relationship("UserData", back_populates="matchmaking_attributes")
 
 
 class ActivityTracker(Base):
-    __tablename__ = 'activity_tracker'
+    __tablename__ = "activity_tracker"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user_data.id'))
+    user_id = Column(Integer, ForeignKey("user_data.id"))
     streaks = Column(Integer)
     number_of_hours = Column(Integer)
 
-    user = relationship('UserData', back_populates='activity_tracker')
+    user = relationship("UserData", back_populates="activity_tracker")
 
 
 class FriendRequestStatus(enum.Enum):
@@ -76,36 +109,44 @@ class FriendRequestStatus(enum.Enum):
 
 
 class FriendRequest(Base):
-    __tablename__ = 'friend_requests'
+    __tablename__ = "friend_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'))
-    receiver_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'))
+    sender_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
+    receiver_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
     status = Column(Enum(FriendRequestStatus), default=FriendRequestStatus.PENDING)
     sent_at = Column(DateTime, default=datetime.utcnow)
 
-
-    sender = relationship('UserData', foreign_keys=[sender_id], back_populates='sent_requests')
-    receiver = relationship('UserData', foreign_keys=[receiver_id], back_populates='received_requests')
+    sender = relationship(
+        "UserData", foreign_keys=[sender_id], back_populates="sent_requests"
+    )
+    receiver = relationship(
+        "UserData", foreign_keys=[receiver_id], back_populates="received_requests"
+    )
 
 
 class UserManager(Base):
-    __tablename__ = 'user_manager'
+    __tablename__ = "user_manager"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_data_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'), nullable=True)
+    user_data_id = Column(
+        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), nullable=True
+    )
     rating = Column(Float)
 
-    user_data = relationship('UserData', back_populates='user_manager')
+    user_data = relationship("UserData", back_populates="user_manager")
 
 
 class Friendship(Base):
-    __tablename__ = 'friendship'
+    __tablename__ = "friendship"
     created_at = Column(DateTime, default=datetime.utcnow)
 
-
-    user_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'), primary_key=True)
-    friend_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'), primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), primary_key=True
+    )
+    friend_id = Column(
+        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class JwtSettings(BaseSettings):
@@ -133,10 +174,12 @@ class RefreshToken(BaseModel):
 
 
 class UserRefreshToken(Base):
-    __tablename__ = 'user_refresh_tokens'
+    __tablename__ = "user_refresh_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("user_data.id", ondelete="CASCADE"), nullable=False
+    )
     refresh_token = Column(String, nullable=True)
     jwt_id = Column(String, nullable=True)
     is_used = Column(Boolean, default=False)
@@ -144,7 +187,7 @@ class UserRefreshToken(Base):
     added_time = Column(DateTime, default=datetime.utcnow)
     expiry_time = Column(DateTime)
 
-    user = relationship('UserData', back_populates='user_refresh_tokens')
+    user = relationship("UserData", back_populates="user_refresh_tokens")
 
 
 class TokenData(BaseModel):
@@ -152,14 +195,16 @@ class TokenData(BaseModel):
 
 
 class VerificationCode(Base):
-    __tablename__ = 'verification_codes'
+    __tablename__ = "verification_codes"
 
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String, unique=True, index=True)
-    user_id = Column(Integer, ForeignKey('user_data.id', ondelete='CASCADE'))
-    expiry_time = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(minutes=10))
+    user_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
+    expiry_time = Column(
+        DateTime, default=lambda: datetime.utcnow() + timedelta(minutes=10)
+    )
 
-    user = relationship('UserData', back_populates='verification_codes')
+    user = relationship("UserData", back_populates="verification_codes")
 
 
 class ChatMessage(Base):
@@ -170,7 +215,9 @@ class ChatMessage(Base):
     receiver_id = Column(Integer, ForeignKey("user_data.id", ondelete="CASCADE"))
     message = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    status = Column(String, default="sent", nullable=False)  #'sent', 'delivered', 'read'
+    status = Column(
+        String, default="sent", nullable=False
+    )  #'sent', 'delivered', 'read'
 
     sender = relationship("UserData", foreign_keys=[sender_id])
     receiver = relationship("UserData", foreign_keys=[receiver_id])

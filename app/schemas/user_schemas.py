@@ -2,6 +2,7 @@ from datetime import date
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 
+
 class UserBase(BaseModel):
     first_name: str
     last_name: str
@@ -24,6 +25,7 @@ class UserDataCreate(BaseModel):
     practice_frequency: str
     interests: List[str]
 
+
 class UserDataResponse(BaseModel):
     id: int
     first_name: str
@@ -39,16 +41,19 @@ class UserDataResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str #EmailStr
+    email: str  # EmailStr
     password: str
+
 
 class RegisterResponse(BaseModel):
     user: UserDataResponse
     access_token: str
     verification_link: str
 
+
 class PasswordResetRequest(BaseModel):
     email: str
+
 
 class UpdatePasswprdRequest(BaseModel):
     email: str

@@ -9,9 +9,24 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.database.connection import get_db
 from app.database.models import UserData, UserRefreshToken, VerificationCode
-from app.schemas.user_schemas import LoginRequest, PasswordResetRequest, UpdatePasswprdRequest, UserDataResponse
-from app.services.user_service import authenticate_user, get_user_by_email, request_password_reset, verify_email
-from app.core.auth_manager import create_access_token, create_refresh_token, decode_token, get_password_hash
+from app.schemas.user_schemas import (
+    LoginRequest,
+    PasswordResetRequest,
+    UpdatePasswprdRequest,
+    UserDataResponse,
+)
+from app.services.user_service import (
+    authenticate_user,
+    get_user_by_email,
+    request_password_reset,
+    verify_email,
+)
+from app.core.auth_manager import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    get_password_hash,
+)
 from app.core.config import pwd_context
 
 
@@ -25,16 +40,18 @@ logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
 
+
 @router.post("/login")
 @track_time
 @limiter.limit("3/minute")
-async def login(request: Request, form_data: LoginRequest = Body(...), db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def login(
+    request: Request, form_data: LoginRequest = Body(...), db: Session = Depends(get_db)
+) -> Dict[str, Any]:
     print("LOGIN ENDPOINT HIT")
 
     try:
         email = form_data.email
         password = form_data.password
-
 
         ## to-implement-the-api: '''https://www.google.com/recaptcha/api/siteverify'''
         # recaptcha_token = form_data.get("recaptcha_token")
@@ -46,13 +63,16 @@ async def login(request: Request, form_data: LoginRequest = Body(...), db: Sessi
         user = authenticate_user(db, email, password)
         if not user:
             logger.warning(f"Failed login - no user: {email}")
-            return JSONResponse(status_code=401, content={"message": "Invalid credentials"})
-
+            return JSONResponse(
+                status_code=401, content={"message": "Invalid credentials"}
+            )
 
         if not user.is_verified:
             logger.warning(f"Failed login - unverified: {email}")
-            return JSONResponse(status_code=403, content={"message": "Email not verified"})
-        
+            return JSONResponse(
+                status_code=403, content={"message": "Email not verified"}
+            )
+
         if not pwd_context.verify(password, user.hashed_password):
             user.failed_attempts += 1
             db.commit()
@@ -61,11 +81,12 @@ async def login(request: Request, form_data: LoginRequest = Body(...), db: Sessi
                 user.is_locked = True
                 logger.error(f"User locked due to failed attempts: {email}")
             db.commit()
-            return JSONResponse(status_code=401, content={"message": "Invalid credentials"})
+            return JSONResponse(
+                status_code=401, content={"message": "Invalid credentials"}
+            )
 
-        
-        user.is_active=True
-        user.is_locked=False
+        user.is_active = True
+        user.is_locked = False
         user.failed_attempts = 0
         db.commit()
         logger.info(f"User logged in: {email}")
@@ -80,37 +101,53 @@ async def login(request: Request, form_data: LoginRequest = Body(...), db: Sessi
             email=user.email,
             full_name=f"{user.first_name} {user.last_name}",
             is_verified=user.is_verified,
-            is_active=user.is_active
+            is_active=user.is_active,
         )
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
-            "user": jsonable_encoder(user_response)
+            "user": jsonable_encoder(user_response),
         }
     except SQLAlchemyError as e:
         logger.error(f"Database error during login: {str(e)}")
-        raise HTTPException(status_code=500, detail="An error occurred while processing your request. Please try again later")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while processing your request. Please try again later",
+        )
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later"
+            detail="An unexpected error occurred. Please try again later",
         )
+
 
 @router.get("/verify-email")
 def verify_email_route(email: str, code: str, db: Session = Depends(get_db)):
     try:
         user = get_user_by_email(db, email)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        
-        verification_code=db.query(VerificationCode).filter(VerificationCode.user_id==user.id,VerificationCode.code==code).first()
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+
+        verification_code = (
+            db.query(VerificationCode)
+            .filter(VerificationCode.user_id == user.id, VerificationCode.code == code)
+            .first()
+        )
         if not verification_code:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
-        if verification_code.expiry_time<datetime.utcnow():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code expired")
-        user.is_verified=True
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification code",
+            )
+        if verification_code.expiry_time < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code expired",
+            )
+        user.is_verified = True
         db.delete(verification_code)
         db.commit()
         return {"message": "Email verified successfully."}
@@ -118,23 +155,28 @@ def verify_email_route(email: str, code: str, db: Session = Depends(get_db)):
         logger.error(f"Database error during email verification: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request. Please try again later."
+            detail="An error occurred while processing your request. Please try again later.",
         )
     except Exception as e:
         logger.error(f"Unexpected error during email verification: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later."
+            detail="An unexpected error occurred. Please try again later.",
         )
-    
-#for forget password service
+
+
+# for forget password service
 @router.post("/request-password-reset")
 @limiter.limit("1/minute")
-def request_password_reset_route(request: Request, req: PasswordResetRequest, db: Session = Depends(get_db)):
+def request_password_reset_route(
+    request: Request, req: PasswordResetRequest, db: Session = Depends(get_db)
+):
     try:
         user = get_user_by_email(db, req.email)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
 
         code = request_password_reset(db, user)
         return {"message": "Password reset code generated successfully", "code": code}
@@ -142,59 +184,73 @@ def request_password_reset_route(request: Request, req: PasswordResetRequest, db
         logger.error(f"Database error during password reset request: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request. Please try again later."
+            detail="An error occurred while processing your request. Please try again later.",
         )
     except Exception as e:
         logger.error(f"Unexpected error during password reset request: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later."
+            detail="An unexpected error occurred. Please try again later.",
         )
-    
+
 
 @router.post("/reset-password")
 @limiter.limit("3/minute")
-def reset_password_route(request: Request, req: UpdatePasswprdRequest, db: Session = Depends(get_db)):
+def reset_password_route(
+    request: Request, req: UpdatePasswprdRequest, db: Session = Depends(get_db)
+):
     try:
         user = get_user_by_email(db, req.email)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        
-        verification_code = db.query(VerificationCode).filter(
-            VerificationCode.user_id == user.id,
-            VerificationCode.code == req.code
-        ).first()
-        
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+
+        verification_code = (
+            db.query(VerificationCode)
+            .filter(
+                VerificationCode.user_id == user.id, VerificationCode.code == req.code
+            )
+            .first()
+        )
+
         if not verification_code:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
-        
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification code",
+            )
+
         if verification_code.expiry_time < datetime.utcnow():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code expired")
-        
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code expired",
+            )
+
         user.hashed_password = get_password_hash(req.new_password)
         db.delete(verification_code)
         db.commit()
-        
+
         return {"message": "Password reset successfully"}
-        
+
     except SQLAlchemyError as e:
         logger.error(f"Database error during password reset: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request. Please try again later."
+            detail="An error occurred while processing your request. Please try again later.",
         )
     except Exception as e:
         logger.error(f"Unexpected error during password reset: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later."
+            detail="An unexpected error occurred. Please try again later.",
         )
-    
 
 
 @router.post("/refresh-token")
 @limiter.limit("2/minute")
-def refresh_access_token(request: Request, refresh_token: str, db: Session = Depends(get_db)):
+def refresh_access_token(
+    request: Request, refresh_token: str, db: Session = Depends(get_db)
+):
     payload = decode_token(refresh_token, "Refresh")
     user_id = payload.get("sub")
 
@@ -203,8 +259,15 @@ def refresh_access_token(request: Request, refresh_token: str, db: Session = Dep
 
     db_token = db.query(UserRefreshToken).filter_by(refresh_token=refresh_token).first()
 
-    if not db_token or db_token.is_used or db_token.is_revoked or db_token.expiry_time < datetime.utcnow():
-        raise HTTPException(status_code=403, detail="Refresh token is invalid or expired")
+    if (
+        not db_token
+        or db_token.is_used
+        or db_token.is_revoked
+        or db_token.expiry_time < datetime.utcnow()
+    ):
+        raise HTTPException(
+            status_code=403, detail="Refresh token is invalid or expired"
+        )
 
     user = db.query(UserData).filter_by(id=user_id).first()
     if not user:
@@ -219,7 +282,7 @@ def refresh_access_token(request: Request, refresh_token: str, db: Session = Dep
         user_id=user.id,
         refresh_token=new_refresh_token,
         jwt_id=payload.get("jti"),
-        expiry_time=datetime.utcnow() + timedelta(days=7)
+        expiry_time=datetime.utcnow() + timedelta(days=7),
     )
 
     db.add(new_token)
@@ -228,5 +291,5 @@ def refresh_access_token(request: Request, refresh_token: str, db: Session = Dep
     return {
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }

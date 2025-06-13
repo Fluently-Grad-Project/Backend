@@ -6,7 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import logging
 
-logging.basicConfig(filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s")
+logging.basicConfig(
+    filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +30,8 @@ logger = logging.getLogger("security")
 app.include_router(user.router, prefix="/users", tags=["Users"])
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(friend_routes.router, prefix="/friends", tags=["Friends"])
-app.include_router(leaderboard_routes.router, prefix="/leaderboard", tags=["Leaderboard"])
+app.include_router(
+    leaderboard_routes.router, prefix="/leaderboard", tags=["Leaderboard"]
+)
 manager = ConnectionManager()
 app.include_router(chat_router)

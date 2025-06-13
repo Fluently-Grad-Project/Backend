@@ -16,3 +16,4 @@ slowapi
 pytest
 pytest-cov
 httpx
+black

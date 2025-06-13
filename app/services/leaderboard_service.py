@@ -2,12 +2,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, outerjoin
 from app.database.models import ActivityTracker, Friendship, UserData
 
+
 def get_all_users_leaderboard(db: Session, limit: int = 10):
     return (
         db.query(
             UserData.first_name,
             UserData.last_name,
-            func.coalesce(ActivityTracker.number_of_hours, 0).label("number_of_hours")
+            func.coalesce(ActivityTracker.number_of_hours, 0).label("number_of_hours"),
         )
         .outerjoin(ActivityTracker, UserData.id == ActivityTracker.user_id)
         .order_by(desc("number_of_hours"))
@@ -15,20 +16,21 @@ def get_all_users_leaderboard(db: Session, limit: int = 10):
         .all()
     )
 
-def get_friends_leaderboard(db: Session, user_id: int, page: int = 1, page_size: int = 10):
-    offset = (page-1) * page_size
+
+def get_friends_leaderboard(
+    db: Session, user_id: int, page: int = 1, page_size: int = 10
+):
+    offset = (page - 1) * page_size
 
     friend_ids_subquery = (
-        db.query(Friendship.friend_id)
-        .filter(Friendship.user_id == user_id)
-        .subquery()
+        db.query(Friendship.friend_id).filter(Friendship.user_id == user_id).subquery()
     )
 
     return (
         db.query(
             UserData.first_name,
             UserData.last_name,
-            func.coalesce(ActivityTracker.number_of_hours, 0).label("number_of_hours")
+            func.coalesce(ActivityTracker.number_of_hours, 0).label("number_of_hours"),
         )
         .outerjoin(ActivityTracker, UserData.id == ActivityTracker.user_id)
         .filter(UserData.id.in_(friend_ids_subquery))

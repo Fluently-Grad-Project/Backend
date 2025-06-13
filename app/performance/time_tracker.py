@@ -4,6 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def track_time(func):
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
@@ -12,4 +13,5 @@ def track_time(func):
         elapsed = time.time() - start
         logger.info(f"{func.__name__} took {elapsed:.4f}s")
         return response
+
     return wrapper

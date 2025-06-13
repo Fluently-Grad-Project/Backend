@@ -38,6 +38,13 @@ $env:PYTHONPATH = "."
 pytest --cov=app tests/
 ```
 
+**Run this to solve the flake8 errors, *to autoformat*:**   
+🚨🚨🚨 **INSTALL/UPGRADE PYTHON 3.6.12**
+```bash
+black app/ tests/
+```
+
+----    
 ## Update the models using these:
 
 ```bash
