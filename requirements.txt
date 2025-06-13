@@ -17,3 +17,7 @@ pytest
 pytest-cov
 httpx
 black
+scikit-learn 
+numpy
+pandas
+cachetools
