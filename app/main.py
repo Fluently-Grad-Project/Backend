@@ -3,7 +3,7 @@ from app.api import user, auth, friend_routes, leaderboard_routes
 from app.api.chat import router as chat_router
 from app.core.websocket_manager import ConnectionManager
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.api import matchmaking_routes
 import logging
 
 logging.basicConfig(
@@ -35,3 +35,4 @@ app.include_router(
 )
 manager = ConnectionManager()
 app.include_router(chat_router)
+app.include_router(matchmaking_routes.router, prefix="/matchmaking", tags=["Matchmaking"])

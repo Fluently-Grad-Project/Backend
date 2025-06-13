@@ -28,6 +28,10 @@ class GenderEnum(enum.Enum):
     MALE = "male"
     FEMALE = "female"
     OTHER = "other"
+class ProficiencyLevel(enum.Enum):
+    BEGINNER = "Beginner"
+    INTERMEDIATE = "Intermediate"
+    FLUENT = "Fluent"
 
 
 class UserData(Base):
@@ -86,7 +90,7 @@ class MatchMaking(Base):
     languages = Column(ARRAY(String))
     practice_frequency = Column(String)
     interests = Column(JSON)
-    proficiency_level = Column(String)
+    proficiency_level = Column(Enum(ProficiencyLevel))
 
     user = relationship("UserData", back_populates="matchmaking_attributes")
 
