@@ -453,7 +453,7 @@ Response:
 }
 ```
 ## Matchmaking endpoint
-**Endpoint:** GET/matchmaking/get-matched-users?n_recommendations=5
+**Endpoint:** GET http://127.0.0.1:8000/matchmaking/get-matched-users?n_recommendations=5
 
 **Headers:**
 
