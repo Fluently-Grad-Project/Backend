@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 def db_session():
     """Create a database session using GitHub's PostgreSQL service"""
     # Use GitHub's default PostgreSQL credentials
-    DATABASE_URL = "postgresql://postgres:asdqwe123@localhost:5432/test_db"
+    DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/test_db"
     engine = create_engine(DATABASE_URL)
     
     # Create tables
