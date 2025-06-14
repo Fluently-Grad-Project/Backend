@@ -1,13 +1,13 @@
 import logging
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.api import auth, friend_routes, leaderboard_routes, matchmaking_routes, user
+from app.services.report_service import ReportService
+from app.api import auth, friend_routes, leaderboard_routes, matchmaking_routes, user,reports
 from app.api.chat import router as chat_router
 from app.core.websocket_manager import ConnectionManager
 from fastapi.staticfiles import StaticFiles
-
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.database.connection import get_db
 logging.basicConfig(
     filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s"
 )
@@ -43,3 +43,21 @@ app.include_router(chat_router)
 app.include_router(
     matchmaking_routes.router, prefix="/matchmaking", tags=["Matchmaking"]
 )
+app.include_router(
+    reports.router, prefix="/reports", tags=["Reports"]
+)
+
+
+
+@app.on_event("startup")
+def check_suspended_users():
+    db = next(get_db())
+    try:
+
+        ReportService(db).check_expired_suspensions()
+        print("Checking suspended users...")
+    except Exception as e:
+        print(f"Error Checking: {e}")
+    finally:
+        db.close()
+    
