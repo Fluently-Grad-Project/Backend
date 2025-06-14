@@ -49,15 +49,23 @@ app.include_router(
 
 
 
-@app.on_event("startup")
-def check_suspended_users():
-    db = next(get_db())
-    try:
+from apscheduler.schedulers.background import BackgroundScheduler
 
-        ReportService(db).check_expired_suspensions()
-        print("Checking suspended users...")
-    except Exception as e:
-        print(f"Error Checking: {e}")
-    finally:
-        db.close()
+@app.on_event("startup")
+def init_scheduler():
+    scheduler = BackgroundScheduler()
+    
+    def check_job():
+        db = next(get_db())
+        try:
+            print("Checking suspended users...")
+            ReportService(db).check_expired_suspensions()
+        except Exception as e:
+            print(f"Error checking suspensions: {e}")
+        finally:
+            db.close()
+    
+  
+    scheduler.add_job(check_job, 'interval', hours=1)
+    scheduler.start()
     
