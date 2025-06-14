@@ -1,4 +1,4 @@
-## Update Rating column to have a default value 
+# Update Rating column to have a default value 
 ```sql
 ALTER TABLE user_manager ALTER COLUMN rating SET DEFAULT 0.0;
 
