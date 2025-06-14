@@ -149,7 +149,7 @@ class UserManager(BaseORM):
     user_data_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("user_data.id", ondelete="CASCADE"), nullable=True
     )
-    rating: Mapped[float] = mapped_column(Float)
+    rating: Mapped[float] = mapped_column(Float, default=0.0)
 
     user_data = relationship("UserData", back_populates="user_manager")
 

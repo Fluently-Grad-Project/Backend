@@ -40,39 +40,47 @@ logger = logging.getLogger(__name__)
 )
 def register_user(
     background_tasks: BackgroundTasks,
-    user_req: UserDataCreate = Body(...),
+    user: UserDataCreate = Body(...),
     db: Session = Depends(get_db),
 ):
-    try:
-        existing_user = get_user_by_email(db, user_req.email)
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail="Email already exists"
-            )
-        user, verification_code = create_user(db, user_req)
-
-        verification_link = (
-            f"{BASE_URL}/auth/verify-email?email={user.email}&code={verification_code}"
+    # Check for existing user first
+    existing_user = get_user_by_email(db, user.email)
+    if existing_user:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already exists"
         )
-        access_token = create_access_token(user=user)
+
+    try:
+        db_user, verification_code = create_user(db, user)
+        verification_link = f"{BASE_URL}/auth/verify-email?email={db_user.email}&code={verification_code}"
+        access_token = create_access_token(user=db_user)
         db.commit()
 
         background_tasks.add_task(
             send_verification_email,
-            email=user.email,
+            email=db_user.email,
             verification_link=verification_link,
         )
 
         return {
-            "user": UserDataResponse.from_orm(user),
+            "user": UserDataResponse.from_orm(db_user),
             "access_token": access_token,
             "verification_link": verification_link,
         }
 
-    except Exception as e:
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 422 for validation errors)
         db.rollback()
+        raise
+    except Exception:
+        # Handle all other exceptions (like DB errors)
+        db.rollback()
+        logger.exception("Database error during registration")
         raise HTTPException(
-            status_code=500, detail=f"An error occurred during registration: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during registration"
         )
 
 

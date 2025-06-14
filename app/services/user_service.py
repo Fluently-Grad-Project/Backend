@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_manager import get_password_hash, verify_password
 from app.database.models import MatchMaking, UserData, UserManager, VerificationCode
 from app.schemas.user_schemas import UserDataCreate, UserDataResponse
-
+import re
 
 class UserCreationError(Exception):
     pass
@@ -32,6 +32,8 @@ def save_verification_code(
 
 
 def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataResponse, str]:
+    validate_email_format(user_data.email)
+    validate_password_strength(user_data.password)
     hashed_password = get_password_hash(user_data.password)
     verification_code = generate_verification_code()
     db_user = UserData(
@@ -122,3 +124,49 @@ def request_password_reset(db: Session, user: UserData) -> str:
     with db.begin():
         save_verification_code(db, user.id, code, expires_in_min=15)
     return code
+def validate_email_format(email: str) -> str:
+    """Basic format check only - allows any domain during testing"""
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):  # Simple: something@something.something
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid email format (use test@test.test)"
+        )
+    return email.lower()  
+def validate_password_strength(password: str) -> None:
+    """
+    Verify password meets strength requirements:
+    - At least 8 characters
+    - At least 1 uppercase letter
+    - At least 1 lowercase letter  
+    - At least 1 number
+    - At least 1 special character
+    """
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must be at least 8 characters long"
+        )
+    
+    if not any(c.isupper() for c in password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must contain at least one uppercase letter"
+        )
+        
+    if not any(c.islower() for c in password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must contain at least one lowercase letter"
+        )
+        
+    if not any(c.isdigit() for c in password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must contain at least one number"
+        )
+        
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must contain at least one special character"
+        )
