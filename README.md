@@ -38,7 +38,7 @@ UPDATE user_manager SET rating = 0.0 WHERE rating IS NULL;
 >   - At least 1 number
 >   - At least 1 special character
 ----
-----
+
 > ### Report User Logic:
 >  # user will be suspended when report_score reaches 20
 > 30 days for users with 3+ critical reports
