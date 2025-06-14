@@ -38,6 +38,13 @@ UPDATE user_manager SET rating = 0.0 WHERE rating IS NULL;
 >   - At least 1 number
 >   - At least 1 special character
 ----
+----
+> ### Report User Logic:
+>  # user will be suspended when report_score reaches 20
+> 30 days for users with 3+ critical reports
+> 15 days for users with 1-2 critical reports
+> 7 days for users with only low/medium priority reports
+----
 
 🚨🚨🚨 **INSTALL/UPGRADE PYTHON 3.6.12**
 ```bash
