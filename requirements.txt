@@ -32,3 +32,4 @@ types-cachetools
 jose
 types-bleach
 bandit
+apscheduler

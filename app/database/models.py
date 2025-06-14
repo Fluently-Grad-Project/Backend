@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.types import JSON
-from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
+from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase, backref
 
 
 class BaseORM(DeclarativeBase):
@@ -35,7 +35,11 @@ class ProficiencyLevel(enum.Enum):
     BEGINNER = "Beginner"
     INTERMEDIATE = "Intermediate"
     FLUENT = "Fluent"
-
+class ReportPriority(enum.Enum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
 
 class UserData(BaseORM):
     __tablename__ = "user_data"
@@ -87,6 +91,12 @@ class UserData(BaseORM):
         secondaryjoin="UserData.id==Friendship.friend_id",
         backref="friend_of",
     )
+    # In UserData class
+    reports_made = relationship("UserReport", foreign_keys="UserReport.reporter_id", back_populates="reporter")
+    reports_received = relationship("UserReport", foreign_keys="UserReport.reported_user_id", back_populates="reported_user")
+    suspensions = relationship("UserSuspension", back_populates="user")
+    
+
 
 
 class MatchMaking(BaseORM):
@@ -256,3 +266,32 @@ class UserRating(BaseORM):
 
     rater = relationship("UserData", foreign_keys=[rater_id])
     ratee = relationship("UserData", foreign_keys=[ratee_id])
+
+
+class UserReport(BaseORM):
+    __tablename__ = "user_reports"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    reporter_id: Mapped[int] = mapped_column(ForeignKey("user_data.id", ondelete="CASCADE"))
+    reported_user_id: Mapped[int] = mapped_column(ForeignKey("user_data.id", ondelete="CASCADE"))
+    priority: Mapped[ReportPriority] = mapped_column(Enum(ReportPriority))
+    reason: Mapped[str] = mapped_column(String)
+    details: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    reporter = relationship("UserData", foreign_keys=[reporter_id])
+    reported_user = relationship("UserData", foreign_keys=[reported_user_id])
+
+
+class UserSuspension(BaseORM):
+    __tablename__ = "user_suspensions"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_data.id", ondelete="CASCADE"))
+    suspension_reason: Mapped[str] = mapped_column(String)
+    suspension_start: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    suspension_end: Mapped[datetime] = mapped_column(DateTime)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    user = relationship("UserData", back_populates="suspensions")
