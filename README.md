@@ -1,3 +1,11 @@
+# Update Rating column to have a default value 
+```sql
+ALTER TABLE user_manager ALTER COLUMN rating SET DEFAULT 0.0;
+
+-- Update any existing NULL values
+UPDATE user_manager SET rating = 0.0 WHERE rating IS NULL;
+```
+
 # To-Be-DoneS-Later     >> after team-meeting probably??
 
 ## 📌📌📌📌
