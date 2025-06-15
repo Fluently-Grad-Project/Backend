@@ -674,4 +674,5 @@ Authorization: Bearer YOUR_JWT_TOKEN
         "gender": "female",
         "similarity_score": 0.0
     }
-] ```
+]
+```
