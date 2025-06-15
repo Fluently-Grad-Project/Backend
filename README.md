@@ -633,3 +633,45 @@ Authorization: Bearer YOUR_JWT_TOKEN
     ]
 }
 ```
+## Matchmaking endpointAdd commentMore actions
+**Endpoint:** GET/matchmaking/get-matched-users?n_recommendations=5
+**Headers:**
+
+Authorization: Bearer YOUR_JWT_TOKEN
+####  Response Example
+```json
+[
+    {
+        "user_id": 2,
+        "username": "m a",
+        "interests": ["Reading","Traveling"],
+        "rating": null,
+        "age": 21,
+        "gender": "female",
+        "similarity_score": 1.0
+    },
+    {
+        "user_id": 8,
+        "username": "m a",
+        "interests": [
+            "Travel"
+        ],
+        "rating": null,
+        "age": 21,
+        "gender": "female",
+        "similarity_score": 0.5773502691896258
+    },
+    {
+        "user_id": 6,
+        "username": "a b",
+        "interests": [
+            "Cars and automobiles",
+            "Politics",
+            "Travel"
+        ],
+        "rating": null,
+        "age": 47,
+        "gender": "female",
+        "similarity_score": 0.0
+    }
+] ```
