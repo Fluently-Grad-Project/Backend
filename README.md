@@ -295,10 +295,10 @@ python -m uvicorn app.main:app --reload
   "message": "Profile picture uploaded successfully",
   "image_path": "/uploads/profile_pics/xxxxxxxx.png"
 }
+```
 
 
-
---------------------------------------------
+--------------------------------------------  
 
 ## Freindship-related endpoints
 
