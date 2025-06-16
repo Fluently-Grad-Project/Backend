@@ -1,7 +1,7 @@
 # Things to be considered After Security🥱
 > Ensure That reported users cannot login to the System, don't appear in the matchmaking,     Friend's list, etc.....   
 > Hal el report_score byerga3 zero after lifting suspension 🤔??  
-```
+---
 # Update Rating column to have a default value 
 ```sql
 ALTER TABLE user_manager ALTER COLUMN rating SET DEFAULT 0.0;
