@@ -136,7 +136,7 @@ env\Scripts\activate
 ```
 
 > create a database: fluently
-- 🚨 *Ensure your username and password are both: **postgres*** 🚨
+
 
 ```bash
 #install dependencies
