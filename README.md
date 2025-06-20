@@ -162,11 +162,11 @@ python -m uvicorn app.main:app --reload
   "first_name": "m",
   "last_name": "a",
   "email": "mennatallahahmed892@gmail.com",
-  "password": "123",
+  "password": "Asdqwe123*",
   "gender": "FEMALE",
   "birth_date": "2003-06-18",
   "languages": ["English", "Turkish"],
-  "proficiency_level": "Intermediate",
+  "proficiency_level": "INTERMEDIATE",
   "practice_frequency": "15",
   "interests": ["Reading", "Traveling"]
 }
