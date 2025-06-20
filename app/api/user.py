@@ -130,6 +130,8 @@ def rate_user(
     ratee = db.query(UserData).filter(UserData.id == user_a_id).first()
     if not ratee:
         raise HTTPException(status_code=404, detail="User to be rated not found")
+    if ratee.is_locked:
+        raise HTTPException(status_code=403, detail="User is locked and cannot be rated")
 
     existing_rating = (
         db.query(UserRating)
@@ -178,6 +180,8 @@ def block_user(
     blocked_user = db.query(UserData).filter(UserData.id == user_id_to_block).first()
     if not blocked_user:
         raise HTTPException(status_code=404, detail="User to block not found")
+    if blocked_user.is_locked:
+        raise HTTPException(status_code=403, detail="User is locked and cannot be blocked")
 
     if user_id_to_block in current_user.blocked_user_ids:
         raise HTTPException(status_code=409, detail="User already blocked")
