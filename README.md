@@ -637,7 +637,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
     ]
 }
 ```
-## Matchmaking endpointAdd commentMore actions
+## Matchmaking endpoint
 **Endpoint:** `http://localhost:8000/matchmaking/get-matched-users?n_recommendations=5`
 **Headers:**
 
