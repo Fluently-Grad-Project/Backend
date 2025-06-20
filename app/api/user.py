@@ -20,9 +20,10 @@ from app.schemas.user_schemas import (
     UserDataCreate,
     UserDataResponse,
     UserRatingCreate,
+    UserProfileResponse
 )
 from app.services.email_service import send_verification_email
-from app.services.user_service import create_user, get_user_by_email
+from app.services.user_service import create_user, get_user_by_email,get_user_profile
 import os
 from app.core.auth_manager import get_current_user
 from app.database.models import UserData, UserRating
@@ -202,3 +203,13 @@ def get_blocked_users(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return {"blocked_user_ids": user.blocked_user_ids}
+
+@router.get("/{user_id}/profile", response_model=UserProfileResponse)
+def get_user_profilee(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    profile = get_user_profile(db, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+    return profile
