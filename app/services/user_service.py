@@ -6,8 +6,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth_manager import get_password_hash, verify_password
-from app.database.models import MatchMaking, UserData, UserManager, VerificationCode
-from app.schemas.user_schemas import UserDataCreate, UserDataResponse,UserProfileResponse
+from app.database.models import MatchMaking, UserData, UserManager, VerificationCode,GenderEnum
+from app.schemas.user_schemas import UserDataCreate, UserDataResponse,UserProfileResponse,UpdateProfileResponse,UpdateProfileRequest
 import re
 
 class UserCreationError(Exception):
@@ -199,4 +199,60 @@ def get_user_profile(db: Session, user_id: int) -> Optional[UserProfileResponse]
         streaks=activity.streaks if activity else None,
         hours_practiced=activity.number_of_hours if activity else None,
         rating=rating
+    )
+def update_user_profile(
+    db: Session, 
+    user_id: int, 
+    update_data: UpdateProfileRequest
+) -> UpdateProfileResponse:
+
+
+    user = db.query(UserData).filter(UserData.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+
+    if update_data.first_name is not None:
+        user.first_name = update_data.first_name
+    if update_data.last_name is not None:
+        user.last_name = update_data.last_name
+    if update_data.gender is not None:
+        try:
+            user.gender = GenderEnum(update_data.gender.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid gender value. Must be 'male', 'female', or 'other'"
+            )
+    
+
+    if update_data.interests is not None:
+        matchmaking = db.query(MatchMaking).filter(MatchMaking.user_id == user_id).first()
+        if matchmaking:
+            matchmaking.interests = update_data.interests
+        else:
+
+            matchmaking = MatchMaking(
+                user_id=user_id,
+                interests=update_data.interests
+
+            )
+            db.add(matchmaking)
+    
+    db.commit()
+    db.refresh(user)
+    
+
+    matchmaking = db.query(MatchMaking).filter(MatchMaking.user_id == user_id).first()
+    
+    return UpdateProfileResponse(
+        id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        gender=user.gender.value if user.gender else None,
+        interests=matchmaking.interests if matchmaking else [],
+        message="Profile updated successfully"
     )

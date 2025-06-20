@@ -20,13 +20,15 @@ from app.schemas.user_schemas import (
     UserDataCreate,
     UserDataResponse,
     UserRatingCreate,
-    UserProfileResponse
+    UserProfileResponse,
+    UpdateProfileResponse,
+    UpdateProfileRequest
 )
 from app.services.email_service import send_verification_email
-from app.services.user_service import create_user, get_user_by_email,get_user_profile
+from app.services.user_service import create_user, get_user_by_email,get_user_profile,update_user_profile
 import os
 from app.core.auth_manager import get_current_user
-from app.database.models import UserData, UserRating
+from app.database.models import UserData, UserRating,UserRefreshToken
 import shutil
 from uuid import uuid4
 
@@ -213,3 +215,56 @@ def get_user_profilee(
     if not profile:
         raise HTTPException(status_code=404, detail="User not found")
     return profile
+@router.patch("/update-profile", response_model=UpdateProfileResponse)
+def update_profile(
+    update_data: UpdateProfileRequest,
+    db: Session = Depends(get_db),
+    current_user: UserData = Depends(get_current_user),
+):
+    
+    try:
+        
+        updated_profile = update_user_profile(
+            db=db,
+            user_id=current_user.id,
+            update_data=update_data
+        )
+        return updated_profile
+    except HTTPException as he:
+        
+        raise he
+    except Exception as e:
+        logger.error(f"Error updating profile: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update profile"
+        )
+@router.post("/logout")
+def logout_user(
+    db: Session = Depends(get_db),
+    current_user: UserData = Depends(get_current_user),
+):
+    """
+    Logs out the current user by setting is_active=False.
+    Also revokes any active refresh tokens for security.
+    """
+    try:
+       
+        current_user.is_active = False
+        
+     
+        db.query(UserRefreshToken).filter(
+            UserRefreshToken.user_id == current_user.id,
+            UserRefreshToken.is_revoked == False
+        ).update({"is_revoked": True})
+        
+        db.commit()
+        return {"message": "Successfully logged out"}
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Logout failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Logout failed"
+        )

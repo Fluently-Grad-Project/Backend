@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, EmailStr, Field
 
 from app.database.models import GenderEnum
-
+from pydantic import Field, field_validator
 
 class UserBase(BaseModel):
     first_name: str
@@ -100,3 +100,32 @@ class UserProfileResponse(BaseModel):
     streaks: Optional[int]
     hours_practiced: Optional[int]
     rating: Optional[float]
+
+
+
+class UpdateProfileRequest(BaseModel):
+    first_name: str = Field(..., min_length=1)  
+    last_name: str = Field(..., min_length=1)   
+    gender: str = Field(..., min_length=1)      
+    interests: List[str] = Field(..., min_length=1)  
+
+    @field_validator('gender')
+    def validate_gender(cls, v):
+        valid_genders = {'male', 'female', 'other'}
+        if v.lower() not in valid_genders:
+            raise ValueError("Gender must be 'male', 'female', or 'other'")
+        return v.lower()
+
+    @field_validator('interests')
+    def validate_interests(cls, v):
+        if not all(isinstance(interest, str) and interest.strip() for interest in v):
+            raise ValueError("All interests must be non-empty strings")
+        return v
+
+class UpdateProfileResponse(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    gender: Optional[str]
+    interests: List[str]
+    message: str = "Profile updated successfully"
