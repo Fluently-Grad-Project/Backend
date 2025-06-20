@@ -1,3 +1,16 @@
+## Backend Sample
+![alt text](image.png)
+
+![alt text](image-1.png)
+
+![alt text](image-2.png)
+
+navigate to http://127.0.0.1:8000/docs  and u will find all the endpoints 
+![alt text](image-3.png)
+
+----
+
+
 ###  To do:
 >   - non Functional Requirements (security bas azon ma3mola ya3ny me7tagen nekhaby el secrets       masalan??, performance blalalalaa)
 >   - Chatbot for user lvl and AI conversations with pronunciation analysis  yarab nekhlas ba2a
