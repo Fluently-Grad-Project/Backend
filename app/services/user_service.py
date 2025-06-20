@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_manager import get_password_hash, verify_password
 from app.database.models import MatchMaking, UserData, UserManager, VerificationCode
-from app.schemas.user_schemas import UserDataCreate, UserDataResponse
+from app.schemas.user_schemas import UserDataCreate, UserDataResponse,UserProfileResponse
 import re
 
 class UserCreationError(Exception):
@@ -170,3 +170,33 @@ def validate_password_strength(password: str) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Password must contain at least one special character"
         )
+
+def get_user_profile(db: Session, user_id: int) -> Optional[UserProfileResponse]:
+    # Get base user data
+    user = db.query(UserData).filter(UserData.id == user_id).first()
+    if not user:
+        return None
+    
+    # Get related data
+    matchmaking = user.matchmaking_attributes
+    activity = user.activity_tracker
+    rating = user.user_manager.rating if user.user_manager else None
+    
+    # Convert to response model
+    return UserProfileResponse(
+        id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        gender=user.gender.value if user.gender else None,
+        birth_date=user.birth_date,
+        profile_image=user.profile_image,
+        is_verified=user.is_verified,
+        created_at=user.created_at,
+        languages=matchmaking.languages if matchmaking else None,
+        practice_frequency=matchmaking.practice_frequency if matchmaking else None,
+        interests=matchmaking.interests if matchmaking else None,
+        proficiency_level=matchmaking.proficiency_level.value if matchmaking else None,
+        streaks=activity.streaks if activity else None,
+        hours_practiced=activity.number_of_hours if activity else None,
+        rating=rating
+    )
