@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional, Union
 
 from pydantic import BaseModel, EmailStr, Field
@@ -81,3 +81,22 @@ class MatchedUserResponse(BaseModel):
 
 class UserRatingCreate(BaseModel):
     rating: float = Field(..., ge=1, le=5)
+
+
+
+class UserProfileResponse(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    gender: Optional[str]  # Using string instead of enum for JSON compatibility
+    birth_date: Optional[date]
+    profile_image: Optional[str]
+    is_verified: bool
+    created_at: datetime
+    languages: Optional[list[str]]
+    practice_frequency: Optional[str]
+    interests: Optional[list[str]] 
+    proficiency_level: Optional[str]
+    streaks: Optional[int]
+    hours_practiced: Optional[int]
+    rating: Optional[float]
