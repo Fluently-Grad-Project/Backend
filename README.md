@@ -638,7 +638,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 }
 ```
 ## Matchmaking endpointAdd commentMore actions
-**Endpoint:** GET/matchmaking/get-matched-users?n_recommendations=5
+**Endpoint:** `http://localhost:8000/matchmaking/get-matched-users?n_recommendations=5`
 **Headers:**
 
 Authorization: Bearer YOUR_JWT_TOKEN
@@ -679,4 +679,19 @@ Authorization: Bearer YOUR_JWT_TOKEN
         "similarity_score": 0.0
     }
 ]
+```
+
+
+##  Report a user Endpoint
+**Endpoint:** `http://127.0.0.1:8000/reports/`
+**Headers:**
+
+Authorization: Bearer YOUR_JWT_TOKEN
+####  Request Body Example
+```json
+{
+  "reported_user_id": 3,
+  "priority": "CRITICAL",
+  "reason": "anything"
+}
 ```
