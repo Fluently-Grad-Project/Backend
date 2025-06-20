@@ -1,4 +1,4 @@
-> ###  To do:
+###  To do:
 >   - non Functional Requirements (security bas azon ma3mola ya3ny me7tagen nekhaby el secrets       masalan??, performance blalalalaa)
 >   - Chatbot for user lvl and AI conversations with pronunciation analysis  yarab nekhlas ba2a
 >   - users voice chat including The NLP for hate speech recognition
