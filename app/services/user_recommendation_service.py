@@ -49,6 +49,7 @@ def get_similar_users(
         FROM matchmaking mm
         JOIN user_data ud ON mm.user_id = ud.id
         WHERE 
+            ud.is_locked = FALSE
             ud.is_active = TRUE
             AND ud.id != {user_id}
             AND ud.id NOT IN (SELECT friend_id FROM user_friends)
