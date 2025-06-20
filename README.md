@@ -322,8 +322,64 @@ python -m uvicorn app.main:app --reload
   "image_path": "/uploads/profile_pics/xxxxxxxx.png"
 }
 ```
+---   
 
+### 8. Update Profile
 
+* **Endpoint:** `PATCH http://127.0.0.1:8000/users/update-profile`
+* **Authorization:** Bearer Token
+
+#### Request Body 
+```json
+{
+  "first_name": "a",
+  "last_name": "b",
+  "gender": "female",
+  "interests": ["Cooking","Cleaning"
+   
+  ]
+}
+```
+#### Response:
+
+```json
+{
+    "id": 10,
+    "first_name": "a",
+    "last_name": "b",
+    "gender": "female",
+    "interests": [
+        "Cooking",
+        "Cleaning"
+    ],
+    "message": "Profile updated successfully"
+}
+```
+---   
+
+### 9. Logout
+
+* **Endpoint:** `POST http://127.0.0.1:8000/users/logout`
+* **Authorization:** Bearer Token
+
+#### Request Body 
+```json
+{
+  "first_name": "a",
+  "last_name": "b",
+  "gender": "female",
+  "interests": ["Cooking","Cleaning"
+   
+  ]
+}
+```
+#### Response:
+
+```json
+{
+    "message": "Successfully logged out"
+}
+```
 --------------------------------------------  
 
 ## Freindship-related endpoints
