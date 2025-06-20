@@ -3,6 +3,11 @@ from typing import List
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
+
+from cachetools import TTLCache
+from typing import Tuple, Dict, Any
+from cachetools import cached
 
 from app.database.models import FriendRequest, FriendRequestStatus, Friendship, UserData
 
@@ -16,7 +21,16 @@ def validate_user_exists(db: Session, user_id: int):
         )
     return user
 
+def validate_user_is_notSuspended(db: Session, user_id: int):
+    user = db.query(UserData).get(user_id)
+    if user.is_locked:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} is suspended",
+        )
 
+        
+    return user
 def validate_not_self_request(sender_id: int, receiver_id: int):
     """Validate user isn't sending request to themselves"""
     if sender_id == receiver_id:
@@ -46,6 +60,8 @@ def send_friend_request(db: Session, sender_id: int, receiver_id: int):
     validate_not_self_request(sender_id, receiver_id)
     validate_user_exists(db, sender_id)
     validate_user_exists(db, receiver_id)
+    validate_user_is_notSuspended(db, sender_id)
+    validate_user_is_notSuspended(db, receiver_id)
     validate_not_already_friends(db, sender_id, receiver_id)
 
     existing_request = (
@@ -90,6 +106,8 @@ def send_friend_request(db: Session, sender_id: int, receiver_id: int):
 def accept_friend_request(db: Session, receiver_id: int, sender_id: int):
     validate_user_exists(db, sender_id)
     validate_user_exists(db, receiver_id)
+    validate_user_is_notSuspended(db, sender_id)
+    validate_user_is_notSuspended(db, receiver_id)
     validate_not_already_friends(db, sender_id, receiver_id)
 
     request = (
@@ -177,4 +195,12 @@ def get_rejected_requests(db: Session, user_id: int) -> List[FriendRequest]:
 
 def get_friends(db: Session, user_id: int) -> List[UserData]:
     user = validate_user_exists(db, user_id)
-    return user.friends
+    return db.query(UserData).join(
+        Friendship,
+        or_(
+            (Friendship.user_id == user_id) & (Friendship.friend_id == UserData.id),
+            (Friendship.friend_id == user_id) & (Friendship.user_id == UserData.id)
+        )
+    ).filter(
+        UserData.is_locked == False
+    ).all()
