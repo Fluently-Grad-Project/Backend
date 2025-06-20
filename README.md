@@ -3,8 +3,6 @@
 docker pull mennaa/fluently-app:latest 
 docker run -p 8000:8000 mennaa/fluently-app:latest
 ```
-
-
 # Things to be considered After Security🥱
 > Ensure That reported users cannot login to the System, don't appear in the matchmaking,     Friend's list, etc.....   
 > Hal el report_score byerga3 zero after lifting suspension 🤔??  
@@ -160,7 +158,7 @@ python -m uvicorn app.main:app --reload
   "gender": "FEMALE",
   "birth_date": "2003-06-18",
   "languages": ["English", "Turkish"],
-  "proficiency_level": "INTERMEDIATE",
+  "proficiency_level": "Intermediate",
   "practice_frequency": "15",
   "interests": ["Reading", "Traveling"]
 }
