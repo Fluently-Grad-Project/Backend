@@ -362,17 +362,6 @@ python -m uvicorn app.main:app --reload
 * **Endpoint:** `POST http://127.0.0.1:8000/users/logout`
 * **Authorization:** Bearer Token
 
-#### Request Body 
-```json
-{
-  "first_name": "a",
-  "last_name": "b",
-  "gender": "female",
-  "interests": ["Cooking","Cleaning"
-   
-  ]
-}
-```
 #### Response:
 
 ```json
