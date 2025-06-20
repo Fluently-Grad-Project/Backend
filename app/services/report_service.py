@@ -19,7 +19,7 @@ class ReportService:
         """
         Create a new user report and check if the reported user should be suspended
         """
-        # Prevent self-reporting
+      
         if reporter_id == reported_user_id:
             raise ValueError("Users cannot report themselves")
         
@@ -63,9 +63,9 @@ class ReportService:
         # If score reaches threshold (equivalent to 20 low-priority reports)
         if total_score >= 20:
             
-            active_suspension = self._get_active_suspension(user_id)
+            active_suspension = self._get_active_suspension(user_id) #check if user is already suspended
             
-            if not active_suspension:
+            if not active_suspension: 
                 return self._suspend_user(
                     user_id=user_id,
                     reason=f"Automatically suspended due to {total_score} report points "
@@ -95,9 +95,9 @@ class ReportService:
             else:
                 total_score += 1
         print(f"Total score for user {user_id}: {total_score}, Critical reports: {critical_count}")      
-        return total_score,
+        return total_score,critical_count
         
-        critical_count
+       
     
     def _calculate_suspension_duration(self, critical_count: int) -> int:
         """
@@ -130,30 +130,8 @@ class ReportService:
         self.db.commit()
         return suspension
     
-    def resolve_report(self, report_id: int, resolver_id: Optional[int] = None) -> UserReport:
 
-        report = self.db.query(UserReport).filter(UserReport.id == report_id).first()
-        if not report:
-            raise ValueError("Report not found")
-        
-        report.is_resolved = True
-        report.resolved_at = datetime.utcnow()
-        if resolver_id:
-            report.moderator_id = resolver_id
-        
-        self.db.commit()
-        self.db.refresh(report)
-        return report
-    
-    def get_user_reports(self, user_id: int, resolved: Optional[bool] = None) -> List[UserReport]:
- 
-        query = self.db.query(UserReport).filter(UserReport.reported_user_id == user_id)
-        
-        if resolved is not None:
-            query = query.filter(UserReport.is_resolved == resolved)
-            
-        return query.order_by(UserReport.created_at.desc()).all()
-    
+  
     def get_reports_made_by_user(self, user_id: int, resolved: Optional[bool] = None) -> List[UserReport]:
         """
         Get all reports made by a specific user
@@ -178,7 +156,7 @@ class ReportService:
         """
         Check if a user is currently suspended
         """
-        return self._get_active_suspension(user_id) is not None
+        return self._get_active_suspension(user_id) is not None #teraga3 kol el active beta3hom b true
     
     def get_user_report_stats(self, user_id: int) -> dict:
         """
@@ -225,13 +203,7 @@ class ReportService:
         
         self.db.commit()
         return suspension
-    
-    def get_all_active_suspensions(self) -> List[UserSuspension]:
-        
-        return self.db.query(UserSuspension).filter(
-            UserSuspension.is_active == True,
-            UserSuspension.suspension_end > datetime.utcnow()
-        ).order_by(UserSuspension.suspension_end.asc()).all()
+
     
     def check_expired_suspensions(self) -> List[UserSuspension]:
        
@@ -244,5 +216,5 @@ class ReportService:
         for suspension in expired_suspensions:
             print(f"Lifting suspension for user {suspension.user_id} due to expiration")
             lifted.append(self.lift_suspension(suspension.user_id))
-        
+        self.db.commit()
         return lifted
