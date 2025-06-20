@@ -651,7 +651,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 }
 ```
 ## Matchmaking endpoint
-**Endpoint:** `http://localhost:8000/matchmaking/get-matched-users?n_recommendations=5`
+**Endpoint:** `GET http://localhost:8000/matchmaking/get-matched-users?n_recommendations=5`
 **Headers:**
 
 Authorization: Bearer YOUR_JWT_TOKEN
@@ -696,7 +696,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 
 
 ##  Report a user Endpoint
-**Endpoint:** `http://127.0.0.1:8000/reports/`
+**Endpoint:** `POST http://127.0.0.1:8000/reports/`
 **Headers:**
 
 Authorization: Bearer YOUR_JWT_TOKEN
