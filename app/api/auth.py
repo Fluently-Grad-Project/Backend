@@ -55,6 +55,9 @@ async def login(
         if not user:
             logger.warning(f"Failed login - no user: {email}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
+        if user.is_locked:
+            logger.warning(f"Failed login - user locked: {email}")
+            raise HTTPException(status_code=403, detail="User account is locked")
 
         if not user.is_verified:
             logger.warning(f"Failed login - unverified: {email}")
