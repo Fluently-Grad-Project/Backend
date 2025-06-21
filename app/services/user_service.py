@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional, Tuple
 
 from fastapi import HTTPException, status
@@ -182,13 +182,12 @@ def get_user_profile(db: Session, user_id: int) -> Optional[UserProfileResponse]
     activity = user.activity_tracker
     rating = user.user_manager.rating if user.user_manager else None
     
-    # Convert to response model
     return UserProfileResponse(
         id=user.id,
         first_name=user.first_name,
         last_name=user.last_name,
         gender=user.gender.value if user.gender else None,
-        birth_date=user.birth_date,
+        birth_date=user.birth_date if isinstance(user.birth_date, date) else None,
         profile_image=user.profile_image,
         is_verified=user.is_verified,
         created_at=user.created_at,

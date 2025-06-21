@@ -4,7 +4,7 @@ from fastapi import WebSocket
 
 
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self)->None:
         self.active_connections: Dict[int, WebSocket] = {}
 
     async def connect(self, user_id: int, websocket: WebSocket):

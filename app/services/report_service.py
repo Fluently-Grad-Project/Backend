@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Any, Optional, List, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from datetime import datetime, timedelta
@@ -158,7 +158,7 @@ class ReportService:
         """
         return self._get_active_suspension(user_id) is not None #teraga3 kol el active beta3hom b true
     
-    def get_user_report_stats(self, user_id: int) -> dict:
+    def get_user_report_stats(self, user_id: int) -> dict[str, Any]:
         """
         Get statistics about a user's reports
         """
@@ -167,7 +167,7 @@ class ReportService:
             UserReport.is_resolved == False
         ).all()
         
-        stats = {
+        stats: dict[str, Any] = {
             'total_reports': len(reports),
             'critical': sum(1 for r in reports if r.priority == ReportPriority.CRITICAL),
             'high': sum(1 for r in reports if r.priority == ReportPriority.HIGH),
@@ -179,9 +179,10 @@ class ReportService:
         
         if stats['is_suspended']:
             suspension = self._get_active_suspension(user_id)
-            stats['suspension_end'] = suspension.suspension_end
-            stats['suspension_reason'] = suspension.suspension_reason
-        
+            if suspension:
+                stats['suspension_end'] = suspension.suspension_end.isoformat()
+                stats['suspension_reason'] = suspension.suspension_reason
+
         return stats
     
     def lift_suspension(self, user_id: int, lifter_id: Optional[int] = None) -> Optional[UserSuspension]:
@@ -191,9 +192,9 @@ class ReportService:
             return None
         
         suspension.is_active = False
-        suspension.lifted_at = datetime.utcnow()
-        if lifter_id:
-            suspension.lifted_by = lifter_id
+        # suspension.lifted_at = datetime.utcnow()
+        # if lifter_id:
+            # suspension.lifted_by = lifter_id
         
 
         # Unlock the user's account
@@ -217,4 +218,5 @@ class ReportService:
             print(f"Lifting suspension for user {suspension.user_id} due to expiration")
             lifted.append(self.lift_suspension(suspension.user_id))
         self.db.commit()
-        return lifted
+        return [s for s in lifted if s is not None]
+
