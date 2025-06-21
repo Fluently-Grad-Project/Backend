@@ -33,3 +33,6 @@ jose
 types-bleach
 bandit
 apscheduler
+Babel
+python-dotenv
+i18n

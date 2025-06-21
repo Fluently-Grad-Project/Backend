@@ -31,6 +31,7 @@ from app.services.user_service import (
     get_user_by_email,
     request_password_reset,
 )
+from app.core.utils import _
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +46,7 @@ limiter = Limiter(key_func=get_remote_address)
 async def login(
     request: Request, form_data: LoginRequest = Body(...), db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
+    # setup_gettext(detect_language(request))
     print("LOGIN ENDPOINT HIT")
 
     try:
@@ -54,14 +56,14 @@ async def login(
         user = authenticate_user(db, email, password)
         if not user:
             logger.warning(f"Failed login - no user: {email}")
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise HTTPException(status_code=401, detail=_("Invalid credentials"))
         if user.is_locked:
             logger.warning(f"Failed login - user locked: {email}")
-            raise HTTPException(status_code=403, detail="User account is locked")
+            raise HTTPException(status_code=403, detail=_("User account is locked"))
 
         if not user.is_verified:
             logger.warning(f"Failed login - unverified: {email}")
-            raise HTTPException(status_code=403, detail="Email not verified")
+            raise HTTPException(status_code=403, detail=_("Email not verified"))
 
         if not verify_password(password, user.hashed_password):
             user.failed_attempts = (user.failed_attempts or 0) + 1
@@ -69,7 +71,7 @@ async def login(
                 user.is_locked = True
                 logger.error(f"User locked due to failed attempts: {email}")
             db.commit()
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise HTTPException(status_code=401, detail=_("Invalid credentials"))
 
         user.is_active = True
         user.is_locked = False
@@ -103,17 +105,19 @@ async def login(
             "token_type": "bearer",
             "user": jsonable_encoder(user_response),
         }
+    except HTTPException as http_e:
+        raise http_e
     except SQLAlchemyError as e:
         logger.error(f"Database error during login: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail="An error occurred while processing your request. Please try again later",
+            detail=_("An error occurred while processing your request. Please try again later"),
         )
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later",
+            detail=_("An unexpected error occurred. Please try again later"),
         )
 
 
@@ -123,7 +127,7 @@ def verify_email_route(email: str, code: str, db: Session = Depends(get_db)):
         user = get_user_by_email(db, email)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=_("User not found")
             )
 
         verification_code = (
@@ -134,33 +138,35 @@ def verify_email_route(email: str, code: str, db: Session = Depends(get_db)):
         if not verification_code:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid verification code",
+                detail=_("Invalid verification code"),
             )
         if verification_code.expiry_time < datetime.utcnow():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Verification code expired",
+                detail=_("Verification code expired"),
             )
         user.is_verified = True
         db.delete(verification_code)
         db.commit()
-        return {"message": "Email verified successfully."}
+        return {"message": _("Email verified successfully")}
+    except HTTPException as http_e:
+        raise http_e
     except SQLAlchemyError as e:
         logger.error(f"Database error during email verification: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request. Please try again later.",
+            detail=_("An error occurred while processing your request. Please try again later"),
         )
     except Exception as e:
         logger.error(f"Unexpected error during email verification: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later.",
+            detail=_("An unexpected error occurred. Please try again later"),
         )
 
 
 @router.post("/request-password-reset")
-@limiter.limit("1/minute")
+@limiter.limit("2/minute")
 def request_password_reset_route(
     request: Request, req: PasswordResetRequest, db: Session = Depends(get_db)
 ):
@@ -168,22 +174,24 @@ def request_password_reset_route(
         user = get_user_by_email(db, req.email)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=_("User not found")
             )
 
         code = request_password_reset(db, user)
-        return {"message": "Password reset code generated successfully", "code": code}
+        return {"message": _("Password reset code generated successfully"), "code": code}
+    except HTTPException as http_e:
+        raise http_e
     except SQLAlchemyError as e:
         logger.error(f"Database error during password reset request: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request. Please try again later.",
+            detail=_("An error occurred while processing your request. Please try again later"),
         )
     except Exception as e:
         logger.error(f"Unexpected error during password reset request: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later.",
+            detail=_("An unexpected error occurred. Please try again later"),
         )
 
 
@@ -196,8 +204,14 @@ def reset_password_route(
         user = get_user_by_email(db, req.email)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=_("User not found")
             )
+        
+        if not req.email:
+            raise HTTPException(status_code=422, detail=_("Email is required"))
+
+        if not req.new_password or len(req.new_password) < 6:
+            raise HTTPException(status_code=422, detail=_("Password must be at least 8 characters, one uppercase, one lowercase, one special character"))
 
         verification_code = (
             db.query(VerificationCode)
@@ -210,32 +224,35 @@ def reset_password_route(
         if not verification_code:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid verification code",
+                detail=_("Invalid verification code"),
             )
 
         if verification_code.expiry_time < datetime.utcnow():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Verification code expired",
+                detail=_("Verification code expired"),
             )
 
         user.hashed_password = get_password_hash(req.new_password)
         db.delete(verification_code)
         db.commit()
 
-        return {"message": "Password reset successfully"}
+        return {"message": _("Password reset successfully")}
+    
+    except HTTPException as http_e:
+        raise http_e
 
     except SQLAlchemyError as e:
         logger.error(f"Database error during password reset: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request. Please try again later.",
+            detail=_("An error occurred while processing your request. Please try again later"),
         )
     except Exception as e:
         logger.error(f"Unexpected error during password reset: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later.",
+            detail=_("An unexpected error occurred. Please try again later"),
         )
 
 
@@ -248,7 +265,7 @@ def refresh_access_token(
     user_id = payload.get("sub")
 
     if not user_id:
-        raise HTTPException(status_code=403, detail="Invalid refresh token")
+        raise HTTPException(status_code=403, detail=_("Invalid refresh token"))
 
     db_token = db.query(UserRefreshToken).filter_by(refresh_token=refresh_token).first()
 
@@ -259,12 +276,12 @@ def refresh_access_token(
         or db_token.expiry_time < datetime.utcnow()
     ):
         raise HTTPException(
-            status_code=403, detail="Refresh token is invalid or expired"
+            status_code=403, detail=_("Refresh token is invalid or expired")
         )
 
     user = db.query(UserData).filter_by(id=user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=_("User not found"))
 
     new_access_token = create_access_token(
         user=UserDataResponse(

@@ -46,14 +46,16 @@ async def create_report(
         return report
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-@router.get("/about/{user_id}", response_model=list[ReportResponse])
-async def get_reports_about_user(
-    user_id: int,
-    resolved: Optional[bool] = None,
-    db: Session = Depends(get_db)
-):
-    report_service = ReportService(db)
-    return report_service.get_user_reports(user_id, resolved)
+    
+# @router.get("/about/{user_id}", response_model=list[ReportResponse])
+# async def get_reports_about_user(
+#     user_id: int,
+#     resolved: Optional[bool] = None,
+#     db: Session = Depends(get_db)
+# ):
+#     report_service = ReportService(db)
+#     return report_service.get_user_reports(user_id, resolved)
+
 @router.get("/by/{user_id}", response_model=list[ReportResponse])
 async def get_reports_by_user(
     user_id: int,
@@ -63,7 +65,7 @@ async def get_reports_by_user(
     report_service = ReportService(db)
     return report_service.get_reports_made_by_user(user_id, resolved)
 @router.get("/myreports", response_model=list[ReportResponse])
-async def get_reports_by_user(
+async def get_my_reports(
     resolved: Optional[bool] = None,
     current_user: UserData = Depends(get_current_user),
     db: Session = Depends(get_db)

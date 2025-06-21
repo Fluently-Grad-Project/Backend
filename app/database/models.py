@@ -106,7 +106,7 @@ class MatchMaking(BaseORM):
     user_id: Mapped[int] = mapped_column(ForeignKey("user_data.id"))
     languages: Mapped[list[str]] = mapped_column(ARRAY(String))
     practice_frequency: Mapped[str] = mapped_column(String)
-    interests: Mapped[dict] = mapped_column(JSON)
+    interests: Mapped[list[str]] = mapped_column(JSON)
     proficiency_level: Mapped[ProficiencyLevel] = mapped_column(Enum(ProficiencyLevel))
 
     user = relationship("UserData", back_populates="matchmaking_attributes")

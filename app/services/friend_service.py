@@ -23,9 +23,14 @@ def validate_user_exists(db: Session, user_id: int):
 
 def validate_user_is_notSuspended(db: Session, user_id: int):
     user = db.query(UserData).get(user_id)
-    if user.is_locked:
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} not found",
+        )
+    if user.is_locked:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=f"User with ID {user_id} is suspended",
         )
 

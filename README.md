@@ -10,6 +10,15 @@ navigate to http://127.0.0.1:8000/docs  and u will find all the endpoints
 
 ----
 
+### For running any new translations for localization:    
+> go to: 
+```bash
+/app/core
+```   
+> then run:
+```bash
+pybabel compile -d translations
+```
 
 ###  To do:
 >   - non Functional Requirements (security bas azon ma3mola ya3ny me7tagen nekhaby el secrets       masalan??, performance blalalalaa)
@@ -19,11 +28,6 @@ navigate to http://127.0.0.1:8000/docs  and u will find all the endpoints
 >   - Unit Tests
 ----
 
-# For frontend team:
-```bash
-docker pull mennaa/fluently-app:latest 
-docker run -p 8000:8000 mennaa/fluently-app:latest
-```
 # Things to be considered After Security🥱
 > Ensure That reported users cannot login to the System, don't appear in the matchmaking,     Friend's list, etc.....   
 > Hal el report_score byerga3 zero after lifting suspension 🤔??  
