@@ -1,36 +1,4 @@
-# Audio Processing API
 
-This API processes audio files using Google's Gemini AI and returns a spoken response in WAV format.
-
-## 🔌 API Endpoint
-
-```http
-POST http://localhost:3000/api/process-audio
-
-## 🛠 API Request Specification
-
-### 1. Headers
-
-| Key               | Value                     | Notes                          |
-|-------------------|---------------------------|--------------------------------|
-| `Content-Type`    | `multipart/form-data`     | *(Auto-set by Flutter's `MultipartRequest`)* |
-
-### 2. Form Data
-
-| Field Name | Type   | Description                          | Requirements                  |
-|------------|--------|--------------------------------------|-------------------------------|
-| `audio`    | File   | Audio file to process                | - Must be `.wav` format       |
-|            |        |                                      |
-                                    
-                               
-
-> 💡 **Validation Tip**: Test with this [sample WAV file](https://storage.googleapis.com/generativeai-downloads/data/16000.wav) to verify compatibility.
-
-# # Postman request 
-![image](https://github.com/user-attachments/assets/92bae08b-6de9-4cb2-a280-0edcc1e32e7c)
-![image](https://github.com/user-attachments/assets/d51f138b-7d42-416a-8f6d-2cd80e534c92)
-
----
 ## Backend Sample
 ![alt text](image.png)
 
