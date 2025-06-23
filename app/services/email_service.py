@@ -20,6 +20,22 @@ async def send_verification_email(email: str, verification_link: str):
 
     send_email_task(message)
 
+async def send_verification_code_email(email: str, code: str):
+    message = MIMEMultipart()
+    message["From"] = EMAIL_FROM
+    message["To"] = email
+    message["Subject"] = "Password Reset Verification Code"
+
+    body = f"""
+    <p>Your password reset verification code is:</p>
+    <h2>{code}</h2>
+    <p>This code will expire in 15 minutes.</p>
+    """
+
+    message.attach(MIMEText(body, "html"))
+    send_email_task(message)
+
+
 
 def send_email_task(message):
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
