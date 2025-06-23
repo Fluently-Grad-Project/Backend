@@ -1,7 +1,11 @@
-go to:  https://ffmpeg.org/download.html
-choose windows, and choose: Windows builds by BtbN
-install:  ffmpeg-master-latest-win64-gpl.zip
-extract files and take the .exe and put it in:  ```bash C:\Users\lap tech\AppData\Local\Programs\Python\Python312\Scripts```    
+go to:  https://ffmpeg.org/download.html    
+choose windows, and choose: Windows builds by BtbN    
+install:    
+```ffmpeg-master-latest-win64-gpl.zip```      
+extract files and take the .exe and put it in:  
+```bash
+C:\Users\<user>\AppData\Local\Programs\Python\Python312\Scripts
+```        
 
 
 ## Backend Sample
@@ -311,6 +315,24 @@ python -m uvicorn app.main:app --reload
 
 ### 6. Refresh Token    
 
+* **Endpoint:** `POST http://127.0.0.1:8000/refresh-token`
+* **Rate Limit:** 2 requests per minute
+
+#### Request: 
+
+```http
+refresh_token=your_refresh_token_here
+```
+
+#### Response:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```   
 ---   
 
 ### 7. Upload or Update Profile Picture
