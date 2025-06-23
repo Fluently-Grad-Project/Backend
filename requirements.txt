@@ -36,3 +36,7 @@ apscheduler
 Babel
 python-dotenv
 i18n
+transformers
+torch
+openai-whisper
+python-multipart

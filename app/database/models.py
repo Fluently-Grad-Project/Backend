@@ -60,6 +60,9 @@ class UserData(BaseORM):
     blocked_user_ids: Mapped[list[int]] = mapped_column(
         MutableList.as_mutable(ARRAY(Integer)), default=list
     )
+    hate_count:Mapped[int]=mapped_column(Integer, default=0)
+    is_suspended: Mapped[bool] = mapped_column(Boolean, default=False)
+
 
     matchmaking_attributes = relationship(
         "MatchMaking", back_populates="user", uselist=False

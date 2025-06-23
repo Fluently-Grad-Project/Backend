@@ -2,13 +2,15 @@ import secrets
 from datetime import date, datetime, timedelta
 from typing import Optional, Tuple
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth_manager import get_password_hash, verify_password
 from app.database.models import MatchMaking, UserData, UserManager, VerificationCode,GenderEnum
 from app.schemas.user_schemas import UserDataCreate, UserDataResponse,UserProfileResponse,UpdateProfileResponse,UpdateProfileRequest
 import re
+
+from app.services.email_service import send_verification_code_email, send_verification_email
 
 class UserCreationError(Exception):
     pass
@@ -42,6 +44,8 @@ def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataRespons
         email=user_data.email,
         hashed_password=hashed_password,
         gender=user_data.gender,
+        is_suspended=user_data.is_suspended,
+        hate_count=user_data.hate_count,
         birth_date=user_data.birth_date,
         is_verified=False,
     )
@@ -119,14 +123,21 @@ def verify_email(db: Session, user: UserData, code: str):
     save_user(db, user)
 
 
-def request_password_reset(db: Session, user: UserData) -> str:
+def request_password_reset(background_tasks: BackgroundTasks, db: Session, user: UserData) -> str:
     code = generate_verification_code()
-    with db.begin():
-        save_verification_code(db, user.id, code, expires_in_min=15)
+    print("WE SENT THE EMAIL!!!!!!!!!!!!")
+    save_verification_code(db, user.id, code, expires_in_min=15)
+    background_tasks.add_task(
+        send_verification_code_email,
+        email=user.email,
+        code=code
+    )
+    db.commit()
     return code
+
 def validate_email_format(email: str) -> str:
     """Basic format check only - allows any domain during testing"""
-    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):  # Simple: something@something.something
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid email format (use test@test.test)"
@@ -172,12 +183,10 @@ def validate_password_strength(password: str) -> None:
         )
 
 def get_user_profile(db: Session, user_id: int) -> Optional[UserProfileResponse]:
-    # Get base user data
     user = db.query(UserData).filter(UserData.id == user_id).first()
     if not user:
         return None
     
-    # Get related data
     matchmaking = user.matchmaking_attributes
     activity = user.activity_tracker
     rating = user.user_manager.rating if user.user_manager else None

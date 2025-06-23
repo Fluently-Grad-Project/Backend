@@ -1,3 +1,8 @@
+go to:  https://ffmpeg.org/download.html
+choose windows, and choose: Windows builds by BtbN
+install:  ffmpeg-master-latest-win64-gpl.zip
+extract files and take the .exe and put it in:  ```bash C:\Users\lap tech\AppData\Local\Programs\Python\Python312\Scripts```    
+
 
 ## Backend Sample
 ![alt text](image.png)

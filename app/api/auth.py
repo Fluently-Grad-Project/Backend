@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 
 from slowapi import Limiter
@@ -168,7 +168,7 @@ def verify_email_route(email: str, code: str, db: Session = Depends(get_db)):
 @router.post("/request-password-reset")
 @limiter.limit("2/minute")
 def request_password_reset_route(
-    request: Request, req: PasswordResetRequest, db: Session = Depends(get_db)
+    request: Request, req: PasswordResetRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
     try:
         user = get_user_by_email(db, req.email)
@@ -177,7 +177,7 @@ def request_password_reset_route(
                 status_code=status.HTTP_404_NOT_FOUND, detail=_("User not found")
             )
 
-        code = request_password_reset(db, user)
+        code = request_password_reset(background_tasks, db, user)
         return {"message": _("Password reset code generated successfully"), "code": code}
     except HTTPException as http_e:
         raise http_e

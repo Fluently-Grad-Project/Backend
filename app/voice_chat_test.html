@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WebSocket Audio Test</title>
+  </head>
+  <body>
+    <h1>WebSocket Audio Sender</h1>
+    <button id="start">Start Recording</button>
+    <button id="stop">Stop & Send</button>
+    <p id="status">Status: Idle</p>
+
+    <script>
+      let mediaRecorder;
+      let audioChunks = [];
+      const token =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4LCJlbWFpbCI6Im1lbm5hdGFsbGFoYWhtZWQ4OTJAZ21haWwuY29tIiwiZnVsbF9uYW1lIjoibTIgYSIsImlzX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE3NTA2NTk1MDh9.C52AU0K5iaryoDG0XlPph4ASxX1ApNVbmCGTQPkWgPk";
+      const socket = new WebSocket(
+        `ws://localhost:8000/ws/start_voice_chat?token=${token}`
+      );
+
+      socket.onopen = () => {
+        document.getElementById("status").innerText = "Connected to server";
+      };
+
+      socket.onmessage = (event) => {
+        console.log("Message from server:", event.data);
+      };
+
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      document.getElementById("start").onclick = async () => {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: "audio/webm" });
+          blob.arrayBuffer().then((buffer) => {
+            socket.send(buffer);
+            document.getElementById("status").innerText = "Audio sent";
+            audioChunks = [];
+          });
+        };
+
+        mediaRecorder.start();
+        document.getElementById("status").innerText = "Recording...";
+      };
+
+      document.getElementById("stop").onclick = () => {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+        }
+      };
+    </script>
+  </body>
+</html>

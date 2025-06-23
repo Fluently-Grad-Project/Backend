@@ -1,29 +1,41 @@
+import base64
+import json
 from operator import or_
-from typing import List
+import os
+import time
+from typing import Annotated, List
+import uuid
 
 import bleach
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect, WebSocketException, status
+from fastapi.websockets import WebSocketState
 from sqlalchemy.orm import Session
 
 from app.core.auth_manager import get_current_user, get_current_user_ws
 from app.core.websocket_manager import manager
 from app.database.connection import get_db
 from app.database.models import ChatMessage, UserData
+from app.models.nlp_model import HateSpeechDetector
 from app.schemas.chat_schemas import ChatMessageResponse, UserContact
 from app.services.chat_service import mark_messages_as_delivered
 
+import subprocess
+
 router = APIRouter()
 
+hate_detector=HateSpeechDetector()
 
 @router.websocket("/ws/chat")
 async def websocket_chat(
     websocket: WebSocket,
-    token: str = Query(...),
+    token: Annotated[str | None, Query()] = None,
     user: UserData = Depends(get_current_user_ws),
 ):
     print("WebSocket connection attempted")
 
     db = next(get_db())
+    if token is None:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
     await manager.connect(user.id, websocket)
     print(f"Connected user {user.id}")
     try:
@@ -52,6 +64,8 @@ async def websocket_chat(
                 {"status": "delivered", "receiver_id": receiver_id}
             )
 
+    except HTTPException as http_e:
+        raise http_e
     except Exception as e:
         print(f"Websocket Error: {e}")
     finally:
@@ -129,3 +143,71 @@ def mark_messages_as_read(
 
     db.commit()
     return {"message": "Messages marked as read"}
+
+
+
+#   ================================================    #
+@router.websocket("/ws/start_voice_chat")
+async def start_voice_chat(
+    websocket: WebSocket,
+    token: Annotated[str | None, Query()] = None,
+    user: UserData = Depends(get_current_user_ws),
+):
+    await websocket.accept()
+    print(f"[AudioMonitor] Connected: {user.first_name}")
+
+    TEMP_DIR = "temp_audio"
+    os.makedirs(TEMP_DIR, exist_ok=True)
+
+    buffer = b""
+    last_flush = time.time()
+
+    try:
+        while True:
+            chunk = await websocket.receive_bytes()
+            buffer += chunk
+
+            file_id = str(uuid.uuid4())
+            input_path = os.path.join(TEMP_DIR, f"{file_id}.opus")
+            converted_path = os.path.join(TEMP_DIR, f"{file_id}_converted.wav")
+
+            with open(input_path, "wb") as f:
+                f.write(buffer)
+            buffer = b""
+            last_flush = time.time()
+
+            try:
+                subprocess.run([
+                    r"C:\ffmpeg\ffmpeg.exe", "-y", "-i", input_path,
+                    "-ar", "16000", "-ac", "1", "-acodec", "pcm_s16le", converted_path
+                ], check=True)
+
+                text = hate_detector.transcribe(converted_path)
+                label = hate_detector.predict(text)
+
+                print(f"[{user.first_name}] Transcript: {text} → {label}")
+
+                if label in ["Offensive", "Hate"]:
+                    if label == "Hate":
+                        user.hate_count += 1
+                        if user.hate_count >= 3:
+                            user.is_suspended = "suspended"
+                            await websocket.send_json({"action": "suspend", "reason": "hate speech"})
+                        else:
+                            await websocket.send_json({"action": "warn", "reason": "hate speech"})
+                    else:
+                        await websocket.send_json({"action": "warn", "reason": "offensive language"})
+                    await websocket.close()
+                    break
+
+            except Exception as e:
+                print(f"Audio processing failed: {e}")
+            finally:
+                for p in [input_path, converted_path]:
+                    if os.path.exists(p):
+                        os.remove(p)
+
+    except WebSocketDisconnect:
+        print(f"[AudioMonitor] Disconnected: {user.first_name}")
+    except Exception as e:
+        print(f"Error during audio monitoring: {e}")
