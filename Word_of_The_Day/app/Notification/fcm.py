@@ -140,7 +140,7 @@ def send_word_notification(token: str, word_data: WordOfTheDayPayload):
     return response.json()
 
 
-@router.get("/register_fcm_token")
+@router.post("/register_fcm_token")
 def register_fcm_token(token: str, db: Session = Depends(get_db)):
     existing = db.get(FCMToken, token)
     if not existing:
