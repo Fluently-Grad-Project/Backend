@@ -28,7 +28,7 @@ from app.services.email_service import send_verification_email
 from app.services.user_service import create_user, get_user_by_email,get_user_profile,update_user_profile
 import os
 from app.core.auth_manager import get_current_user
-from app.database.models import UserData, UserRating,UserRefreshToken
+from app.database.models import UserData, UserRating,UserRefreshToken,UserManager
 import shutil
 from uuid import uuid4
 
@@ -154,7 +154,22 @@ def rate_user(
 
     db.commit()
 
-    return {"message": "Rating submitted successfully."}
+
+    ratings = db.query(UserRating).filter(UserRating.ratee_id == user_a_id).all()
+    if ratings:
+        average_rating = sum(r.rating for r in ratings) / len(ratings)
+        
+
+        user_manager = db.query(UserManager).filter(UserManager.user_data_id == user_a_id).first()
+        if not user_manager:
+            user_manager = UserManager(user_data_id=user_a_id, rating=average_rating)
+            db.add(user_manager)
+        else:
+            user_manager.rating = average_rating
+        
+        db.commit()
+
+    return {"message": "User rated successfully"}
 
 
 @router.get("/rating/{user_id}")
@@ -244,10 +259,7 @@ def logout_user(
     db: Session = Depends(get_db),
     current_user: UserData = Depends(get_current_user),
 ):
-    """
-    Logs out the current user by setting is_active=False.
-    Also revokes any active refresh tokens for security.
-    """
+
     try:
        
         current_user.is_active = False
