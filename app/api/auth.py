@@ -94,6 +94,9 @@ async def login(
                 if user.matchmaking_attributes
                 else None
             ),
+            is_suspended=user.is_suspended,
+            is_locked=user.is_locked,
+            hate_count=user.hate_count,
         )
 
         access_token = create_access_token(user=user_response)
