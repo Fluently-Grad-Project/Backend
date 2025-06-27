@@ -28,7 +28,7 @@ class BaseORM(DeclarativeBase):
 class GenderEnum(enum.Enum):
     MALE = "male"
     FEMALE = "female"
-    OTHER = "other"
+
 
 
 class ProficiencyLevel(enum.Enum):

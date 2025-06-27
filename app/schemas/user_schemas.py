@@ -27,6 +27,8 @@ class UserDataCreate(BaseModel):
     proficiency_level: str
     practice_frequency: str
     interests: List[str]
+ 
+ 
 
 
 class UserDataResponse(BaseModel):
@@ -39,6 +41,7 @@ class UserDataResponse(BaseModel):
     full_name: Optional[str] = None
     is_active: bool
     is_suspended:Optional[bool]=None
+    is_locked:Optional[bool]=None
     hate_count:Optional[int]=None
     profile_image: Optional[str] = None
     interests: Optional[Union[List[str], dict]] = None

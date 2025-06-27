@@ -44,10 +44,8 @@ def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataRespons
         email=user_data.email,
         hashed_password=hashed_password,
         gender=user_data.gender,
-        is_suspended=user_data.is_suspended,
-        hate_count=user_data.hate_count,
         birth_date=user_data.birth_date,
-        is_verified=False,
+        is_verified=False
     )
     db.add(db_user)
     db.flush()
@@ -80,6 +78,9 @@ def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataRespons
             if db_user.matchmaking_attributes
             else None
         ),
+        is_suspended=db_user.is_suspended,
+        is_locked=db_user.is_locked,
+        hate_count=db_user.hate_count,
     )
     return user_response, verification.code
 
