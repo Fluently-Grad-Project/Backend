@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from datetime import datetime, timedelta
 from app.database.models import UserReport, UserSuspension, UserData, ReportPriority
+from fastapi import WebSocket
 
 
 class ReportService:
@@ -158,32 +159,7 @@ class ReportService:
         """
         return self._get_active_suspension(user_id) is not None #teraga3 kol el active beta3hom b true
     
-    def get_user_report_stats(self, user_id: int) -> dict[str, Any]:
-        """
-        Get statistics about a user's reports
-        """
-        reports = self.db.query(UserReport).filter(
-            UserReport.reported_user_id == user_id,
-            UserReport.is_resolved == False
-        ).all()
-        
-        stats: dict[str, Any] = {
-            'total_reports': len(reports),
-            'critical': sum(1 for r in reports if r.priority == ReportPriority.CRITICAL),
-            'high': sum(1 for r in reports if r.priority == ReportPriority.HIGH),
-            'medium': sum(1 for r in reports if r.priority == ReportPriority.MEDIUM),
-            'low': sum(1 for r in reports if r.priority == ReportPriority.LOW),
-            'score': self._calculate_report_score(user_id)[0],
-            'is_suspended': self._is_user_suspended(user_id)
-        }
-        
-        if stats['is_suspended']:
-            suspension = self._get_active_suspension(user_id)
-            if suspension:
-                stats['suspension_end'] = suspension.suspension_end.isoformat()
-                stats['suspension_reason'] = suspension.suspension_reason
 
-        return stats
     
     def lift_suspension(self, user_id: int, lifter_id: Optional[int] = None) -> Optional[UserSuspension]:
         

@@ -72,3 +72,4 @@ async def get_my_reports(
 ):
     report_service = ReportService(db)
     return report_service.get_reports_made_by_user(current_user.id, resolved)
+
