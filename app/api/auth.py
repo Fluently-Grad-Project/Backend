@@ -1,10 +1,12 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict
+from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 
+from app.core.exceptions import InvalidTokenError, InvalidTokenTypeError, TokenExpiredError
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.exc import SQLAlchemyError
@@ -94,14 +96,24 @@ async def login(
                 if user.matchmaking_attributes
                 else None
             ),
-            is_suspended=user.is_suspended,
             is_locked=user.is_locked,
             hate_count=user.hate_count,
         )
 
         access_token = create_access_token(user=user_response)
         refresh_token = create_refresh_token(user=user)
+        
+        new_refresh_token_entry = UserRefreshToken(
+            user_id=user.id,
+            refresh_token=refresh_token,
+            jwt_id=uuid4().hex,
+            is_used=False,
+            is_revoked=False,
+            expiry_time=datetime.utcnow() + timedelta(days=7)
+        )
 
+        db.add(new_refresh_token_entry)
+        db.commit()
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -264,30 +276,31 @@ def reset_password_route(
 def refresh_access_token(
     request: Request, refresh_token: str, db: Session = Depends(get_db)
 ):
-    payload = decode_token(refresh_token, "Refresh")
-    user_id = payload.get("sub")
+    try:
+        payload = decode_token(refresh_token, "Refresh")
 
-    if not user_id:
-        raise HTTPException(status_code=403, detail=_("Invalid refresh token"))
+        user_id_str = payload.get("sub")
+        if not user_id_str or not user_id_str.isdigit():
+            raise HTTPException(status_code=403, detail=_("Invalid refresh token"))
 
-    db_token = db.query(UserRefreshToken).filter_by(refresh_token=refresh_token).first()
+        user_id = int(user_id_str)
 
-    if (
-        not db_token
-        or db_token.is_used
-        or db_token.is_revoked
-        or db_token.expiry_time < datetime.utcnow()
-    ):
-        raise HTTPException(
-            status_code=403, detail=_("Refresh token is invalid or expired")
-        )
+        db_token = db.query(UserRefreshToken).filter_by(refresh_token=refresh_token).first()
+        if (
+            not db_token
+            or db_token.is_used
+            or db_token.is_revoked
+            or db_token.expiry_time < datetime.utcnow()
+        ):
+            raise HTTPException(
+                status_code=403, detail=_("Refresh token is invalid or expired")
+            )
 
-    user = db.query(UserData).filter_by(id=user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail=_("User not found"))
+        user = db.query(UserData).filter_by(id=user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail=_("User not found"))
 
-    new_access_token = create_access_token(
-        user=UserDataResponse(
+        user_response = UserDataResponse(
             id=user.id,
             first_name=user.first_name,
             last_name=user.last_name,
@@ -302,22 +315,36 @@ def refresh_access_token(
                 if user.matchmaking_attributes
                 else None
             ),
+            is_locked=user.is_locked,
+            hate_count=user.hate_count,
         )
-    )
-    new_refresh_token = create_refresh_token(user=user)
 
-    new_token = UserRefreshToken(
-        user_id=user.id,
-        refresh_token=new_refresh_token,
-        jwt_id=payload.get("jti"),
-        expiry_time=datetime.utcnow() + timedelta(days=7),
-    )
+        new_access_token = create_access_token(user=user_response)
+        new_refresh_token = create_refresh_token(user=user)
 
-    db.add(new_token)
-    db.commit()
+        new_token = UserRefreshToken(
+            user_id=user.id,
+            refresh_token=new_refresh_token,
+            jwt_id=payload.get("jti"),
+            expiry_time=datetime.utcnow() + timedelta(days=7),
+        )
 
-    return {
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer",
-    }
+        db.add(new_token)
+        db.commit()
+
+        return {
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "bearer",
+        }
+
+    except TokenExpiredError:
+        raise HTTPException(status_code=401, detail=_("Refresh token expired"))
+    except (InvalidTokenError, InvalidTokenTypeError):
+        raise HTTPException(status_code=403, detail=_("Invalid refresh token"))
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during refresh: {str(e)}")
+        raise HTTPException(status_code=500, detail=_("Database error"))
+    except Exception as e:
+        logger.error(f"Unexpected error during refresh: {str(e)}")
+        raise HTTPException(status_code=500, detail=_("Unexpected server error"))

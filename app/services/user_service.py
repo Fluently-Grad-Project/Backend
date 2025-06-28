@@ -78,7 +78,6 @@ def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataRespons
                 if db_user.matchmaking_attributes
                 else None
             ),
-        is_suspended=db_user.is_suspended,
         is_locked=db_user.is_locked,
         hate_count=db_user.hate_count,
     )

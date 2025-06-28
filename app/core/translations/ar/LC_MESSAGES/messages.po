@@ -70,3 +70,33 @@ msgstr "تنسيق البريد الإلكتروني غير صالح"
 
 msgid "Password must be at least 8 characters, one uppercase, one lowercase, one special character"
 msgstr "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل، وحرف كبير واحد، وحرف صغير واحد، وحرف خاص واحد"
+
+msgid "User with ID {user_id} not found"
+msgstr "المستخدم بالمعرف {user_id} غير موجود"
+
+msgid "User with ID {user_id} is suspended"
+msgstr "المستخدم بالمعرف {user_id} موقوف"
+
+msgid "Cannot send friend request to yourself"
+msgstr "لا يمكنك إرسال طلب صداقة إلى نفسك"
+
+msgid "Users are already friends"
+msgstr "المستخدمون أصدقاء بالفعل"
+
+msgid "Friend request already sent"
+msgstr "تم إرسال طلب الصداقة بالفعل"
+
+msgid "This user has already sent you a friend request"
+msgstr "هذا المستخدم أرسل لك بالفعل طلب صداقة"
+
+msgid "Friend request sent successfully"
+msgstr "تم إرسال طلب الصداقة بنجاح"
+
+msgid "No pending friend request found"
+msgstr "لا يوجد طلب صداقة معلق"
+
+msgid "Friend request accepted successfully"
+msgstr "تم قبول طلب الصداقة بنجاح"
+
+msgid "Friend request rejected successfully"
+msgstr "تم رفض طلب الصداقة بنجاح"
