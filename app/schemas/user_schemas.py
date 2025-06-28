@@ -40,7 +40,6 @@ class UserDataResponse(BaseModel):
     is_verified: bool
     full_name: Optional[str] = None
     is_active: bool
-    is_suspended:Optional[bool]=None
     is_locked:Optional[bool]=None
     hate_count:Optional[int]=None
     profile_image: Optional[str] = None

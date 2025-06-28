@@ -315,7 +315,7 @@ python -m uvicorn app.main:app --reload
 
 ### 6. Refresh Token    
 
-* **Endpoint:** `POST http://127.0.0.1:8000/refresh-token`
+* **Endpoint:** `POST http://127.0.0.1:8000/auth/refresh-token?refresh-token=the_refresh_token_stored_from_user_login`
 * **Rate Limit:** 2 requests per minute
 
 #### Request: 
@@ -629,6 +629,55 @@ Response:
 }
 ```
 > ***This should be called from the frontend when the user opens the chat***
+
+
+---
+
+
+### 5. **Start Voice Chat Monitoring**
+
+**Endpoint:** `WebSocket /ws/start_voice_chat?token=YOUR_JWT_TOKEN`
+Starts real-time voice chat monitoring for offensive or hate speech.
+
+**Authentication:**
+Token must be passed as a query parameter:
+
+```
+/ws/start_voice_chat?token=YOUR_JWT_TOKEN
+```
+
+**Headers:**
+None (token is in URL)
+
+**Body:**
+Sends binary audio data (`audio/webm`) in small chunks over WebSocket.
+
+**Response Examples (WebSocket Messages):**
+
+```json
+{
+  "action": "warn",
+  "reason": "offensive language"
+}
+```
+
+```json
+{
+  "action": "warn",
+  "reason": "hate speech"
+}
+```
+
+```json
+{
+  "action": "suspend",
+  "reason": "hate speech"
+}
+```
+
+> ⚠️ This WebSocket will close automatically after sending a warning or suspension message.
+>
+> ⚠️ A user is suspended after **3 hate speech violations**.
 
 ----
 
