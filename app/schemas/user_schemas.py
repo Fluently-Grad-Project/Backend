@@ -112,6 +112,7 @@ class UpdateProfileRequest(BaseModel):
     last_name: str = Field(..., min_length=1)   
     gender: str = Field(..., min_length=1)      
     interests: List[str] = Field(..., min_length=1)  
+    proficiency_level: str= Field(..., min_length=1)
 
     @field_validator('gender')
     def validate_gender(cls, v):
@@ -132,4 +133,5 @@ class UpdateProfileResponse(BaseModel):
     last_name: str
     gender: Optional[str]
     interests: List[str]
+    proficiency_level: Optional[str]
     message: str = "Profile updated successfully"

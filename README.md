@@ -364,26 +364,27 @@ refresh_token=your_refresh_token_here
 #### Request Body 
 ```json
 {
-  "first_name": "a",
-  "last_name": "b",
-  "gender": "female",
-  "interests": ["Cooking","Cleaning"
-   
-  ]
+  "first_name": "s",
+  "last_name": "a",
+  "gender": "FEMALE",
+  "interests": [
+    "Science"
+  ],
+  "proficiency_level": "INTERMEDIATE"
 }
 ```
 #### Response:
 
 ```json
 {
-    "id": 10,
-    "first_name": "a",
-    "last_name": "b",
+    "id": 2,
+    "first_name": "s",
+    "last_name": "a",
     "gender": "female",
     "interests": [
-        "Cooking",
-        "Cleaning"
+        "Science"
     ],
+    "proficiency_level": "Intermediate",
     "message": "Profile updated successfully"
 }
 ```

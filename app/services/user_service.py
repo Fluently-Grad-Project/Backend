@@ -250,6 +250,19 @@ def update_user_profile(
 
             )
             db.add(matchmaking)
+    if update_data.proficiency_level is not None:
+
+       
+
+        matchmaking = db.query(MatchMaking).filter(MatchMaking.user_id == user_id).first()
+        if matchmaking:
+            matchmaking.proficiency_level = update_data.proficiency_level
+        else:
+            matchmaking = MatchMaking(
+                user_id=user_id,
+                proficiency_level=update_data.proficiency_level
+            )
+            db.add(matchmaking)
     
     db.commit()
     db.refresh(user)
@@ -263,5 +276,6 @@ def update_user_profile(
         last_name=user.last_name,
         gender=user.gender.value if user.gender else None,
         interests=matchmaking.interests if matchmaking else [],
+        proficiency_level=matchmaking.proficiency_level.value if matchmaking and matchmaking.proficiency_level else None,
         message="Profile updated successfully"
     )
