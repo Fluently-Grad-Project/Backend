@@ -29,6 +29,6 @@ def get_friends_leaderboard(
         db=db, user_id=current_user.id, page=page, page_size=page_size
     )
     return [
-        LeaderboardResponse(first_name=row[0], last_name=row[1], number_of_hours=row[2])
+        LeaderboardResponse(first_name=row[0], last_name=row[1], user_id=row[2], number_of_hours=row[3])
         for row in db_result
     ]

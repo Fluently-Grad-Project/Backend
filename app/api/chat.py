@@ -31,23 +31,36 @@ async def websocket_chat(
     token: Annotated[str | None, Query()] = None,
     user: UserData = Depends(get_current_user_ws),
 ):
-    print("WebSocket connection attempted")
-
     db = next(get_db())
+
     if token is None:
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await manager.connect(user.id, websocket)
-    print(f"Connected user {user.id}")
     try:
         while True:
-            data = await websocket.receive_json()
-            receiver_id = data["receiver_id"]
-            message = data["message"]
+            try:
+                data = await websocket.receive_json()
+            except Exception:
+                await websocket.send_json({"error": "Invalid message format"})
+                continue
 
+            receiver_id = data.get("receiver_id")
+            message = data.get("message")
+
+            if not receiver_id or not isinstance(receiver_id, int):
+                await websocket.send_json({"error": "Invalid or missing receiver_id"})
+                continue
+            if not message or not isinstance(message, str) or message.strip() == "":
+                await websocket.send_json({"error": "Message cannot be empty"})
+                continue
             if receiver_id == user.id:
-                raise HTTPException(400, "You can't message yourself")
+                await websocket.send_json({"error": "Cannot message yourself"})
+                continue
 
-            message = bleach.clean(data["message"])
+            message = bleach.clean(message)
+
             chat = ChatMessage(
                 sender_id=user.id,
                 receiver_id=receiver_id,
@@ -56,18 +69,21 @@ async def websocket_chat(
             )
             db.add(chat)
             db.commit()
-            await manager.send_message(f"{user.first_name}: {message}", receiver_id)
-            mark_messages_as_delivered(
-                db=db, receiver_id=receiver_id, sender_id=user.id
-            )
+
+            try:
+                await manager.send_message(f"{user.first_name}: {message}", receiver_id)
+            except Exception as e:
+                print(f"Error sending message: {e}")
+                await websocket.send_json({"error": "Failed to deliver message"})
+
+            mark_messages_as_delivered(db=db, receiver_id=receiver_id, sender_id=user.id)
             await websocket.send_json(
                 {"status": "delivered", "receiver_id": receiver_id}
             )
-
-    except HTTPException as http_e:
-        raise http_e
+    except WebSocketDisconnect:
+        print(f"User {user.id} disconnected")
     except Exception as e:
-        print(f"Websocket Error: {e}")
+        print(f"WebSocket Error: {e}")
     finally:
         manager.disconnect(user.id)
 
@@ -129,6 +145,9 @@ def mark_messages_as_read(
     db: Session = Depends(get_db),
     current_user: UserData = Depends(get_current_user),
 ):
+    if sender_id == current_user.id:
+        raise HTTPException(400, "Cannot mark your own messages as read")
+
     messages = (
         db.query(ChatMessage)
         .filter(
@@ -138,12 +157,15 @@ def mark_messages_as_read(
         )
         .all()
     )
+
+    if not messages:
+        raise HTTPException(404, "No unread messages found")
+
     for message in messages:
         message.status = "read"
 
     db.commit()
     return {"message": "Messages marked as read"}
-
 
 
 #   ================================================    #
@@ -191,7 +213,7 @@ async def start_voice_chat(
                     if label == "Hate":
                         user.hate_count += 1
                         if user.hate_count >= 3:
-                            user.is_suspended = "suspended"
+                            user.is_locked = "suspended"
                             await websocket.send_json({"action": "suspend", "reason": "hate speech"})
                         else:
                             await websocket.send_json({"action": "warn", "reason": "hate speech"})

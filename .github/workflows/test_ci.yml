@@ -5,7 +5,8 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    env:
+      SKIP_MODEL_LOADING: "1"
     services:
       postgres:
         image: postgres:13
