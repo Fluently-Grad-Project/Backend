@@ -848,7 +848,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 }
 ```
 ##  Update Practice Hours Endpoint
-**Endpoint:** `PATCH http://localhost:8000/activity/update_hours`
+**Endpoint:** `PATCH http://localhost:8000/activity/update_hours` 
 **Headers:**
 
 Authorization: Bearer YOUR_JWT_TOKEN
