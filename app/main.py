@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.language_middleware import LanguageMiddleware
 from app.services.report_service import ReportService
-from app.api import auth, friend_routes, leaderboard_routes, matchmaking_routes, user,reports
+from app.api import auth, friend_routes, leaderboard_routes, matchmaking_routes, user,reports,activity
 from app.api.chat import router as chat_router
 from app.core.websocket_manager import ConnectionManager
 from fastapi.staticfiles import StaticFiles
@@ -47,6 +47,8 @@ app.include_router(
 app.include_router(
     reports.router, prefix="/reports", tags=["Reports"]
 )
+app.include_router(
+    activity.router, prefix="/activity", tags=["Activity"])
 
 app.add_middleware(LanguageMiddleware)
 
@@ -69,4 +71,5 @@ def init_scheduler():
   
     scheduler.add_job(check_job, 'interval', hours=1)
     scheduler.start()
+
     

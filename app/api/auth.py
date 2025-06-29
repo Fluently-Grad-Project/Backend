@@ -20,7 +20,7 @@ from app.core.auth_manager import (
     verify_password,
 )
 from app.database.connection import get_db
-from app.database.models import UserData, UserRefreshToken, VerificationCode
+from app.database.models import UserData, UserRefreshToken, VerificationCode, ActivityTracker
 from app.performance.time_tracker import track_time
 from app.schemas.user_schemas import (
     LoginRequest,
@@ -54,8 +54,11 @@ async def login(
     try:
         email = form_data.email
         password = form_data.password
-
         user = authenticate_user(db, email, password)
+        activity = db.query(ActivityTracker).filter_by(user_id=user.id).first()
+
+
+
         if not user:
             logger.warning(f"Failed login - no user: {email}")
             raise HTTPException(status_code=401, detail=_("Invalid credentials"))
@@ -73,6 +76,7 @@ async def login(
                 user.is_locked = True
                 logger.error(f"User locked due to failed attempts: {email}")
             db.commit()
+        
             raise HTTPException(status_code=401, detail=_("Invalid credentials"))
 
         user.is_active = True
@@ -114,6 +118,8 @@ async def login(
 
         db.add(new_refresh_token_entry)
         db.commit()
+        activity = db.query(ActivityTracker).filter_by(user_id=user.id).first()
+
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,

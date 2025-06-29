@@ -847,3 +847,23 @@ Authorization: Bearer YOUR_JWT_TOKEN
   "reason": "anything"
 }
 ```
+##  Update Practice Hours Endpoint
+**Endpoint:** `PATCH http://localhost:8000/activity/update_hours`
+**Headers:**
+
+Authorization: Bearer YOUR_JWT_TOKEN
+####  Request Body Example
+```json
+{
+  "hours_to_add": 1
+}
+```
+```json
+####  Response
+{
+    "streaks": 0,
+    "user_id": 7,
+    "id": 5,
+    "number_of_hours": 1
+}
+```

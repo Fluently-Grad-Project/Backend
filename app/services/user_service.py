@@ -6,7 +6,7 @@ from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth_manager import get_password_hash, verify_password
-from app.database.models import MatchMaking, UserData, UserManager, VerificationCode,GenderEnum
+from app.database.models import MatchMaking, UserData, UserManager, VerificationCode,GenderEnum,ActivityTracker
 from app.schemas.user_schemas import UserDataCreate, UserDataResponse,UserProfileResponse,UpdateProfileResponse,UpdateProfileRequest
 import re
 
@@ -60,6 +60,7 @@ def create_user(db: Session, user_data: UserDataCreate) -> Tuple[UserDataRespons
         )
     )
     db.add(UserManager(user_data_id=db_user.id))
+    db.add(ActivityTracker(user_id=db_user.id, number_of_hours=0, streaks=0))
 
     verification = save_verification_code(db, db_user.id, verification_code)
 
