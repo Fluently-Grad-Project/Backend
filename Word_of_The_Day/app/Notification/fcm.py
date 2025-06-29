@@ -69,16 +69,15 @@ def send_notification(payload: pushNotificationPayload):
             "token": payload.token,
             "notification": {
                 "title": payload.title,
-                "body": payload.body,
-                "image": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png",
+                "body": payload.body
             },
             "android": {
                 "notification": {
-                    "image": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png",  # Android-specific image
+   
                     "channel_id": "high_importance_channel",  # Required for Android 8+
                 }
             },
-            "apns": {  # iOS-specific
+            "apns": { 
                 "payload": {"aps": {"mutable-content": 1}},
                 "fcm_options": {
                     "image": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png"
