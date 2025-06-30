@@ -1,8 +1,14 @@
 from pydantic import BaseModel
+from typing import Optional
 
 
-class LeaderboardResponse(BaseModel):
+class LeaderboardUser(BaseModel):
     first_name: str
     last_name: str
-    id: int
-    number_of_hours: int
+    profile_image: Optional[str]
+    streaks: int
+    hours: int
+    score: int
+
+    class Config:
+        from_attributes = True

@@ -48,6 +48,8 @@ ALTER TABLE user_manager ALTER COLUMN rating SET DEFAULT 0.0;
 
 -- Update any existing NULL values
 UPDATE user_manager SET rating = 0.0 WHERE rating IS NULL;
+-- Update the activty tracker Table with this --
+ALTER TABLE activity_tracker ADD COLUMN last_practiced_date TIMESTAMP WITH TIME ZONE;
 ```
 
 # To-Be-DoneS-Later     >> after team-meeting probably??

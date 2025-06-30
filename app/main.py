@@ -63,6 +63,8 @@ def init_scheduler():
         try:
             print("Checking suspended users...")
             ReportService(db).check_expired_suspensions()
+            print("Resets streaks for users who didn't practice today")
+            activity.check_activity_streaks(db)
         except Exception as e:
             print(f"Error checking suspensions: {e}")
         finally:

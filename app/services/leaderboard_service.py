@@ -1,54 +1,45 @@
-from sqlalchemy import desc, func
+
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from app.core.auth_manager import get_password_hash, verify_password
+from app.database.models import  UserData,  ActivityTracker
+from app.schemas.leaderboard_schemas import LeaderboardUser
 
-from app.database.models import ActivityTracker, Friendship, UserData
+from app.services.email_service import send_verification_code_email, send_verification_email
 
 
-def get_all_users_leaderboard(db: Session, limit: int = 10):
-    # current_user = db.query(UserData).get(current_user_id)
-    # if not current_user:
-    #     return []
-
-    return (
+def get_all_users_leaderboard(db: Session):
+    """
+    Get top 5 users based on score (streaks * 10 + hours) 
+    Only includes active, non-locked accounts
+    """
+    leaderboard = (
         db.query(
             UserData.first_name,
             UserData.last_name,
-            UserData.id,
-            func.coalesce(ActivityTracker.number_of_hours, 0).label("number_of_hours"),
+            UserData.profile_image,
+            ActivityTracker.streaks,
+            ActivityTracker.number_of_hours.label("hours"),
+            (ActivityTracker.streaks * 10 + ActivityTracker.number_of_hours).label("score")
         )
-        .outerjoin(ActivityTracker, UserData.id == ActivityTracker.user_id)
+        .join(ActivityTracker, UserData.id == ActivityTracker.user_id)
         .filter(
-            UserData.is_locked == False,
+            UserData.is_locked == False,  
+            UserData.is_verified == True  
         )
-        .order_by(desc("number_of_hours"))
-        .limit(limit)
+        .order_by(func.coalesce(ActivityTracker.streaks * 10 + ActivityTracker.number_of_hours, 0).desc())
+        .limit(5)
         .all()
     )
 
-
-
-# def get_friends_leaderboard(db: Session, user_id: int, page: int = 1, page_size: int = 10):
-#     offset = (page - 1) * page_size
-
-#     current_user = db.query(UserData).get(user_id)
-#     blocked_ids = set(current_user.blocked_user_ids)
-
-#     return (
-#         db.query(
-#             UserData.first_name,
-#             UserData.last_name,
-#             func.coalesce(ActivityTracker.number_of_hours, 0).label("number_of_hours"),
-#         )
-#         .outerjoin(ActivityTracker, UserData.id == ActivityTracker.user_id)
-#         .filter(
-#             UserData.id.in_(
-#                 db.query(Friendship.friend_id).filter(Friendship.user_id == user_id)
-#             ),
-#             UserData.id.notin_(blocked_ids),
-#             ~UserData.blocked_user_ids.any(user_id)
-#         )
-#         .order_by(desc("number_of_hours"))
-#         .offset(offset)
-#         .limit(page_size)
-#         .all()
-#     )
+    return [
+        LeaderboardUser(
+            first_name=user.first_name,
+            last_name=user.last_name,
+            profile_image=user.profile_image,
+            streaks=user.streaks,
+            hours=user.hours,
+            score=user.score
+        )
+        for user in leaderboard
+    ]
