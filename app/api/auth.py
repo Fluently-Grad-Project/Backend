@@ -95,6 +95,7 @@ async def login(
             is_verified=user.is_verified,
             is_active=user.is_active,
             profile_image=user.profile_image,
+            proficiency_level=user.matchmaking_attributes.proficiency_level,
             interests=(
                 user.matchmaking_attributes.interests
                 if user.matchmaking_attributes
