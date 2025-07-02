@@ -40,3 +40,4 @@ transformers
 torch
 openai-whisper
 python-multipart
+pytest-asyncio
