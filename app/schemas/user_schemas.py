@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 
 from app.database.models import GenderEnum
 from pydantic import Field, field_validator
@@ -17,8 +17,8 @@ class UserBase(BaseModel):
 
 
 class UserDataCreate(BaseModel):
-    first_name: str
-    last_name: str
+    first_name: str 
+    last_name: str 
     email: str
     password: str
     gender: Optional[str] = None
@@ -27,6 +27,16 @@ class UserDataCreate(BaseModel):
     proficiency_level: str
     practice_frequency: str
     interests: List[str]
+    @validator('first_name', 'last_name')
+    def check_empty_string(cls, v):
+        if not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v.strip()
+    @field_validator('interests')
+    def validate_interests(cls, v):
+        if not all(isinstance(interest, str) and interest.strip() for interest in v):
+            raise ValueError("All interests must be non-empty strings")
+        return v
  
  
 
@@ -128,6 +138,11 @@ class UpdateProfileRequest(BaseModel):
         if not all(isinstance(interest, str) and interest.strip() for interest in v):
             raise ValueError("All interests must be non-empty strings")
         return v
+    @validator('first_name', 'last_name')
+    def check_empty_string(cls, v):
+        if not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v.strip()
 
 class UpdateProfileResponse(BaseModel):
     id: int
