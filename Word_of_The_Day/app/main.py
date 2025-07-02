@@ -60,7 +60,7 @@ def startup_event():
 
     scheduler.add_job(
         send_daily_notification_job,
-        CronTrigger(hour=3, minute=45),  # 8 PM (20:00)
+        CronTrigger(hour=20, minute=0),  # 8 PM (20:00)
         name="daily_word_notification",
     )
     scheduler.start()

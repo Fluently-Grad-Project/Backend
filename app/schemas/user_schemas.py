@@ -91,6 +91,7 @@ class UserRatingCreate(BaseModel):
 
 class UserProfileResponse(BaseModel):
     id: int
+    email: str
     first_name: str
     last_name: str
     gender: Optional[str]  # Using string instead of enum for JSON compatibility

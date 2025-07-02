@@ -194,6 +194,7 @@ def get_user_profile(db: Session, user_id: int) -> Optional[UserProfileResponse]
     
     return UserProfileResponse(
         id=user.id,
+        email=user.email,
         first_name=user.first_name,
         last_name=user.last_name,
         gender=user.gender.value if user.gender else None,

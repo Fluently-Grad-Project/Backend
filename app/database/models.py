@@ -100,8 +100,6 @@ class UserData(BaseORM):
     suspensions = relationship("UserSuspension", back_populates="user")
     
 
-
-
 class MatchMaking(BaseORM):
     __tablename__ = "matchmaking"
 
