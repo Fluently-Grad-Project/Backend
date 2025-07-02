@@ -31,13 +31,14 @@ async def websocket_chat(
     token: Annotated[str | None, Query()] = None,
     user: UserData = Depends(get_current_user_ws),
 ):
-    db = next(get_db())
-
     if token is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
+    db = next(get_db())
+
     await manager.connect(user.id, websocket)
+
     try:
         while True:
             try:
@@ -49,41 +50,49 @@ async def websocket_chat(
             receiver_id = data.get("receiver_id")
             message = data.get("message")
 
-            if not receiver_id or not isinstance(receiver_id, int):
+            if not isinstance(receiver_id, int) or receiver_id <= 0:
                 await websocket.send_json({"error": "Invalid or missing receiver_id"})
                 continue
-            if not message or not isinstance(message, str) or message.strip() == "":
+
+            if not isinstance(message, str) or not message.strip():
                 await websocket.send_json({"error": "Message cannot be empty"})
                 continue
+
             if receiver_id == user.id:
                 await websocket.send_json({"error": "Cannot message yourself"})
                 continue
 
-            message = bleach.clean(message)
-
-            chat = ChatMessage(
-                sender_id=user.id,
-                receiver_id=receiver_id,
-                message=message,
-                status="sent",
-            )
-            db.add(chat)
-            db.commit()
-
             try:
-                await manager.send_message(f"{user.first_name}: {message}", receiver_id)
-            except Exception as e:
-                print(f"Error sending message: {e}")
-                await websocket.send_json({"error": "Failed to deliver message"})
+                message = bleach.clean(message)
 
-            mark_messages_as_delivered(db=db, receiver_id=receiver_id, sender_id=user.id)
-            await websocket.send_json(
-                {"status": "delivered", "receiver_id": receiver_id}
-            )
+                chat = ChatMessage(
+                    sender_id=user.id,
+                    receiver_id=receiver_id,
+                    message=message,
+                    status="sent",
+                )
+                db.add(chat)
+                db.commit()
+
+                await manager.send_message(f"{user.first_name}: {message}", receiver_id)
+                mark_messages_as_delivered(db=db, receiver_id=receiver_id, sender_id=user.id)
+
+                await websocket.send_json({
+                    "status": "delivered",
+                    "receiver_id": receiver_id
+                })
+
+            except Exception as e:
+                db.rollback()
+                await websocket.send_json({"error": "Failed to send message", "details": str(e)})
     except WebSocketDisconnect:
         print(f"User {user.id} disconnected")
+    except WebSocketException as ws_exc:
+        print(f"WebSocket exception: {ws_exc}")
+        await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
     except Exception as e:
-        print(f"WebSocket Error: {e}")
+        print(f"Unexpected error: {e}")
+        await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
     finally:
         manager.disconnect(user.id)
 
@@ -94,29 +103,30 @@ def get_chat_history(
     db: Session = Depends(get_db),
     current_user: UserData = Depends(get_current_user),
 ):
+    if receiver_id == current_user.id:
+        raise HTTPException(400, "Cannot get chat history with yourself")
+
     messages = (
         db.query(ChatMessage)
         .filter(
-            (
-                (ChatMessage.sender_id == current_user.id)
-                & (ChatMessage.receiver_id == receiver_id)
-            )
-            | (
-                (ChatMessage.sender_id == receiver_id)
-                & (ChatMessage.receiver_id == current_user.id)
-            )
+            ((ChatMessage.sender_id == current_user.id) & (ChatMessage.receiver_id == receiver_id))
+            | ((ChatMessage.sender_id == receiver_id) & (ChatMessage.receiver_id == current_user.id))
         )
         .order_by(ChatMessage.timestamp)
         .all()
     )
+
+    if not messages:
+        raise HTTPException(404, "No messages found")
+
     return messages
+
 
 
 @router.get("/chat/my-contacts", response_model=List[UserContact])
 def get_chat_contacts(
     db: Session = Depends(get_db), current_user: UserData = Depends(get_current_user)
 ):
-    # user IDs from messages where current_user is a sender or a receiver
     messages = (
         db.query(ChatMessage)
         .filter(
@@ -128,12 +138,14 @@ def get_chat_contacts(
         .all()
     )
 
-    user_ids = set()
-    for msg in messages:
-        if msg.sender_id != current_user.id:
-            user_ids.add(msg.sender_id)
-        if msg.receiver_id != current_user.id:
-            user_ids.add(msg.receiver_id)
+    user_ids = {
+        msg.sender_id if msg.sender_id != current_user.id else msg.receiver_id
+        for msg in messages
+        if msg.sender_id != msg.receiver_id
+    }
+
+    if not user_ids:
+        return []
 
     users = db.query(UserData).filter(UserData.id.in_(user_ids)).all()
     return users
@@ -148,24 +160,29 @@ def mark_messages_as_read(
     if sender_id == current_user.id:
         raise HTTPException(400, "Cannot mark your own messages as read")
 
-    messages = (
-        db.query(ChatMessage)
-        .filter(
-            ChatMessage.sender_id == sender_id,
-            ChatMessage.receiver_id == current_user.id,
-            ChatMessage.status.in_(["sent", "delivered"]),
+    try:
+        messages = (
+            db.query(ChatMessage)
+            .filter(
+                ChatMessage.sender_id == sender_id,
+                ChatMessage.receiver_id == current_user.id,
+                ChatMessage.status.in_(["sent", "delivered"]),
+            )
+            .all()
         )
-        .all()
-    )
 
-    if not messages:
-        raise HTTPException(404, "No unread messages found")
+        if not messages:
+            raise HTTPException(404, "No unread messages found")
 
-    for message in messages:
-        message.status = "read"
+        for message in messages:
+            message.status = "read"
+        db.commit()
 
-    db.commit()
-    return {"message": "Messages marked as read"}
+        return {"message": "Messages marked as read"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Failed to mark messages as read: {str(e)}")
 
 
 #   ================================================    #
@@ -182,23 +199,21 @@ async def start_voice_chat(
     os.makedirs(TEMP_DIR, exist_ok=True)
 
     buffer = b""
-    last_flush = time.time()
 
     try:
         while True:
-            chunk = await websocket.receive_bytes()
-            buffer += chunk
-
-            file_id = str(uuid.uuid4())
-            input_path = os.path.join(TEMP_DIR, f"{file_id}.opus")
-            converted_path = os.path.join(TEMP_DIR, f"{file_id}_converted.wav")
-
-            with open(input_path, "wb") as f:
-                f.write(buffer)
-            buffer = b""
-            last_flush = time.time()
-
             try:
+                chunk = await websocket.receive_bytes()
+                buffer += chunk
+
+                file_id = str(uuid.uuid4())
+                input_path = os.path.join(TEMP_DIR, f"{file_id}.opus")
+                converted_path = os.path.join(TEMP_DIR, f"{file_id}_converted.wav")
+
+                with open(input_path, "wb") as f:
+                    f.write(buffer)
+                buffer = b""
+
                 subprocess.run([
                     r"C:\ffmpeg\ffmpeg.exe", "-y", "-i", input_path,
                     "-ar", "16000", "-ac", "1", "-acodec", "pcm_s16le", converted_path
@@ -222,8 +237,10 @@ async def start_voice_chat(
                     await websocket.close()
                     break
 
+            except subprocess.CalledProcessError:
+                await websocket.send_json({"error": "Failed to convert audio"})
             except Exception as e:
-                print(f"Audio processing failed: {e}")
+                await websocket.send_json({"error": f"Processing failed: {str(e)}"})
             finally:
                 for p in [input_path, converted_path]:
                     if os.path.exists(p):
@@ -232,4 +249,5 @@ async def start_voice_chat(
     except WebSocketDisconnect:
         print(f"[AudioMonitor] Disconnected: {user.first_name}")
     except Exception as e:
-        print(f"Error during audio monitoring: {e}")
+        print(f"Voice Chat Error: {e}")
+        await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
