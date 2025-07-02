@@ -13,13 +13,10 @@ from app.database.models import MatchMaking, UserData, UserManager
 from app.schemas.user_schemas import MatchedUserResponse
 
 
-similar_users_cache: TTLCache[Tuple[int, int], List[Tuple[int, float]]] = TTLCache(
-    maxsize=128, ttl=300
-)
-user_details_cache: TTLCache[int, Dict[str, Any]] = TTLCache(maxsize=256, ttl=300)
 
 
-@cached(similar_users_cache)
+
+
 def get_similar_users(
     user_id: int, n_recommendations: int = 5
 ) -> List[Tuple[int, float]]:
@@ -116,7 +113,7 @@ def get_similar_users(
 
 
 # Cache user details for 1 hour
-@cached(user_details_cache)
+
 def get_user_details(user_id: int, db: Session) -> dict:
     """Cache individual user details"""
     user = (
