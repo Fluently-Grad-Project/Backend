@@ -55,13 +55,16 @@ async def login(
         email = form_data.email
         password = form_data.password
         user = authenticate_user(db, email, password)
-        activity = db.query(ActivityTracker).filter_by(user_id=user.id).first()
-
+        if not email or not password:
+            raise HTTPException(status_code=422, detail=_("Email and password are required"))
+        
 
 
         if not user:
             logger.warning(f"Failed login - no user: {email}")
-            raise HTTPException(status_code=401, detail=_("Invalid credentials"))
+            raise HTTPException(status_code=404, detail=_("User not found"))
+        
+        activity = db.query(ActivityTracker).filter_by(user_id=user.id).first()
         if user.is_locked:
             logger.warning(f"Failed login - user locked: {email}")
             raise HTTPException(status_code=403, detail=_("User account is locked"))
