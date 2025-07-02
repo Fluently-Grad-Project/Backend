@@ -49,6 +49,8 @@ app.include_router(
 )
 app.include_router(
     activity.router, prefix="/activity", tags=["Activity"])
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 
 app.add_middleware(LanguageMiddleware)
 
