@@ -9,12 +9,13 @@ import time
 from typing import Annotated, List
 import uuid
 
+from fastapi import Header
 import bleach
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, WebSocketException, status
 from fastapi.websockets import WebSocketState
 from sqlalchemy.orm import Session
 
-from app.core.auth_manager import get_current_user, get_current_user_ws
+from app.core.auth_manager import decode_token, get_current_user, get_current_user_ws
 from app.core.websocket_manager import manager
 from app.database.connection import get_db
 from app.database.models import ActivityTracker, ChatMessage, UserData
@@ -234,12 +235,21 @@ async def signal_socket(websocket: WebSocket, user=Depends(get_current_user_ws))
         user_connections.pop(user.id, None)
 
 
+# ============================================================================
+
 @router.websocket("/ws/start_voice_chat/{room_id}")
 async def voice_chat(websocket: WebSocket, room_id: str, user=Depends(get_current_user_ws)):
-    await websocket.accept()  # ✅ Always accept first!
+    await websocket.accept()
 
     parts = active_calls.get(room_id)
     if not parts or user.id not in parts:
+        await websocket.close()
+        return
+
+    db = next(get_db())
+    user_in_db = db.query(UserData).filter(UserData.id == user.id).first()
+    if user_in_db and user_in_db.is_locked:
+        await websocket.send_text("END_CALL")
         await websocket.close()
         return
 
@@ -249,7 +259,7 @@ async def voice_chat(websocket: WebSocket, room_id: str, user=Depends(get_curren
         while True:
             data = await websocket.receive_bytes()
             if data == b"END_CALL":
-                for pid, ws in list(voice_rooms[room_id].items()):  # ✅ Safe iteration
+                for pid, ws in list(voice_rooms[room_id].items()):
                     if ws.application_state == WebSocketState.CONNECTED:
                         await ws.send_text("END_CALL")
                         await ws.close()
@@ -265,17 +275,67 @@ async def voice_chat(websocket: WebSocket, room_id: str, user=Depends(get_curren
             active_calls.pop(room_id, None)
 
 
-
-
-
 @router.post("/notify-hate-speech")
-async def notify_hate_speech(request: Request):
+async def notify_hate_speech(
+    request: Request,
+    authorization: str = Header(None),
+    db: Session = Depends(get_db),
+):
+    if authorization is None or not authorization.startswith("Bearer "):
+        return {"error": "Authorization header missing or invalid"}
+
+    token = authorization.removeprefix("Bearer ").strip()
+
+    try:
+        payload = decode_token(token, token_type="Access")
+        user_id = payload.get("user_id")
+        if user_id is None:
+            return {"error": "Invalid token payload"}
+    except Exception as e:
+        return {"error": f"Token decode error: {str(e)}"}
+
+    user = db.query(UserData).filter(UserData.id == user_id).first()
+    if not user:
+        return {"error": "User not found"}
+
     data = await request.json()
     transcript = data.get("transcript")
     label = data.get("label")
-    authorization = request.headers.get("Authorization")
 
     print(f"⚠️ Hate speech detected! Transcript: {transcript}, Label: {label}")
-    print(f"Authorization token received: {authorization}")
+    print(f"Authorization token received for user_id: {user_id}")
+
+    if label == "hate_speech":
+        user.hate_count = (user.hate_count or 0) + 1
+        print(f"Incremented hate count for user {user.id}: {user.hate_count}")
+
+        if user.hate_count >= 3:
+            user.is_locked=True
+            print(f"User {user.id} locked due to hate speech.")
+
+            to_remove = []
+            for rid, participants in active_calls.items():
+                if user.id in participants:
+
+                    if rid in voice_rooms:
+                        for pid, ws in voice_rooms[rid].items():
+                            if ws.application_state == WebSocketState.CONNECTED:
+                                await ws.send_text("END_CALL")
+                                await ws.close()
+                        voice_rooms.pop(rid, None)
+                    to_remove.append(rid)
+
+            for rid in to_remove:
+                active_calls.pop(rid, None)
+
+            ws = user_connections.get(user.id)
+            if ws and ws.application_state == WebSocketState.CONNECTED:
+                await ws.send_json({
+                    "event": "account_locked",
+                    "message": "Your account is locked due to repeated hate speech"
+                })
+                await ws.close()
+
+    db.commit()
 
     return {"status": "notification received"}
