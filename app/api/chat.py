@@ -10,7 +10,7 @@ from typing import Annotated, List
 import uuid
 
 import bleach
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect, WebSocketException, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, WebSocketException, status
 from fastapi.websockets import WebSocketState
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,6 @@ from app.core.auth_manager import get_current_user, get_current_user_ws
 from app.core.websocket_manager import manager
 from app.database.connection import get_db
 from app.database.models import ActivityTracker, ChatMessage, UserData
-from app.models.nlp_model import HateSpeechDetector, get_hate_detector
 from app.schemas.chat_schemas import ChatMessageResponse, UserContact
 from app.services.chat_service import mark_messages_as_delivered
 
@@ -26,7 +25,7 @@ import subprocess
 
 router = APIRouter()
 
-hate_detector=HateSpeechDetector()
+# hate_detector=HateSpeechDetector()
 
 @router.websocket("/ws/chat")
 async def websocket_chat(
@@ -190,8 +189,8 @@ def mark_messages_as_read(
 
 # globals for connections
 user_connections = {}              # user_id -> WebSocket (for signaling)
-voice_rooms = defaultdict(set)    # room_id -> Set[WebSocket] (for voice data)
-active_calls = {}                 # room_id -> (caller_id, callee_id)
+voice_rooms = defaultdict(dict)    # room_id -> Set[WebSocket] (for voice data)
+active_calls = {}                  # room_id -> (caller_id, callee_id)
 # ------------------------------------------------------------------------------------------------
 
 def generate_room_id():
@@ -234,20 +233,23 @@ async def signal_socket(websocket: WebSocket, user=Depends(get_current_user_ws))
     finally:
         user_connections.pop(user.id, None)
 
+
 @router.websocket("/ws/start_voice_chat/{room_id}")
 async def voice_chat(websocket: WebSocket, room_id: str, user=Depends(get_current_user_ws)):
+    await websocket.accept()  # ✅ Always accept first!
+
     parts = active_calls.get(room_id)
     if not parts or user.id not in parts:
         await websocket.close()
         return
-    await websocket.accept()
+
     voice_rooms[room_id][user.id] = websocket
     print("VoiceChat joined:", user.id)
     try:
         while True:
             data = await websocket.receive_bytes()
             if data == b"END_CALL":
-                for pid, ws in voice_rooms[room_id].items():
+                for pid, ws in list(voice_rooms[room_id].items()):  # ✅ Safe iteration
                     if ws.application_state == WebSocketState.CONNECTED:
                         await ws.send_text("END_CALL")
                         await ws.close()
@@ -262,23 +264,18 @@ async def voice_chat(websocket: WebSocket, room_id: str, user=Depends(get_curren
         if not voice_rooms[room_id]:
             active_calls.pop(room_id, None)
 
-@router.post("/analyze-audio")
-async def analyze_audio(file: UploadFile = File(...)):
-    tmp = f"temp_audio/{uuid.uuid4()}"
-    os.makedirs(tmp, exist_ok=True)
-    in_path = f"{tmp}/{file.filename}"
-    out_wav = f"{tmp}/{uuid.uuid4()}.wav"
-    with open(in_path, "wb") as f:
-        f.write(await file.read())
-    try:
-        subprocess.run(["ffmpeg", "-y", "-i", in_path, "-ar", "16000", "-ac", "1", out_wav], check=True)
-        detector = get_hate_detector()
-        text = detector.transcribe(out_wav)
-        label = detector.predict(text)
-        return {"transcript": text, "label": label}
-    except subprocess.CalledProcessError:
-        raise HTTPException(400, "Conversion failed")
-    finally:
-        for p in [in_path, out_wav]:
-            if os.path.exists(p): os.remove(p)
-        if os.path.exists(tmp): os.rmdir(tmp)
+
+
+
+
+@router.post("/notify-hate-speech")
+async def notify_hate_speech(request: Request):
+    data = await request.json()
+    transcript = data.get("transcript")
+    label = data.get("label")
+    authorization = request.headers.get("Authorization")
+
+    print(f"⚠️ Hate speech detected! Transcript: {transcript}, Label: {label}")
+    print(f"Authorization token received: {authorization}")
+
+    return {"status": "notification received"}

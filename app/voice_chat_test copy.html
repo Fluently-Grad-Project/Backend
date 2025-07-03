@@ -2,14 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Voice Chat with Signaling</title>
+    <title>Voice Chat with Separate Audio Analysis</title>
   </head>
   <body>
     <h1>Voice Chat</h1>
 
     <div>
-      <label
-        >Call User ID:
+      <label>
+        Call User ID:
         <input type="number" id="calleeId" />
       </label>
       <button id="callBtn">Call User</button>
@@ -17,7 +17,7 @@
 
     <button id="endCallBtn" disabled>End Call</button>
 
-    <h2>Hate Speech Detection (Manual Upload)</h2>
+    <h2>Hate Speech Detection</h2>
     <form id="audioForm">
       <input type="file" id="audioFile" accept="audio/*" required />
       <button type="submit">Analyze</button>
@@ -32,15 +32,72 @@
       let processor;
       let input;
       let stream;
-      let mediaRecorder;
-      let audioChunks = [];
       let analysisInterval;
       let roomId = null;
 
+      // Replace with your real token
       const token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4LCJlbWFpbCI6Im1lbm5hdGFsbGFoYWhtZWQ4OTJAZ21haWwuY29tIiwiZnVsbF9uYW1lIjoibTIgYSIsImlzX3ZlcmlmaWVkIjp0cnVlLCJ0eXBlIjoiQWNjZXNzIiwiZXhwIjoxNzUxNTQ0NTYzfQ.hH2mYe1lu1e3TqPCvTaW3_OBxyTOCF8oAj3_M16PjD0";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMCwiZW1haWwiOiJtM0BnbWFpbC5jb20iLCJmdWxsX25hbWUiOiJtMyBhMyIsImlzX3ZlcmlmaWVkIjp0cnVlLCJ0eXBlIjoiQWNjZXNzIiwiZXhwIjoxNzUxNTYxNDkwfQ.p7X_wlo8WoNR-7a6zt1ssHWNKQjQAs8CO86gYjspA5I";
 
-      // Connect signaling WebSocket
+      // WAV converter from Float32 samples
+      function float32ToWav(audioData, sampleRate) {
+        const buffer = new ArrayBuffer(44 + audioData.length * 2);
+        const view = new DataView(buffer);
+
+        function writeString(offset, string) {
+          for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+          }
+        }
+
+        writeString(0, "RIFF");
+        view.setUint32(4, 36 + audioData.length * 2, true);
+        writeString(8, "WAVE");
+        writeString(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM format
+        view.setUint16(22, 1, true); // Mono
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true); // Byte rate
+        view.setUint16(32, 2, true); // Block align
+        view.setUint16(34, 16, true); // Bits per sample
+        writeString(36, "data");
+        view.setUint32(40, audioData.length * 2, true);
+
+        for (let i = 0; i < audioData.length; i++) {
+          let s = Math.max(-1, Math.min(1, audioData[i]));
+          view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+
+        return new Blob([view], { type: "audio/wav" });
+      }
+
+      // Send audio chunk to analyze API
+      async function sendForAnalysis(wavBlob) {
+        const formData = new FormData();
+        formData.append("file", wavBlob, "analysis.wav");
+
+        try {
+          const res = await fetch("http://localhost:8001/analyze-audio", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            document.getElementById("result").innerHTML += `
+            <p><strong>Transcript:</strong> ${data.transcript}</p>
+            <p><strong>Label:</strong> ${data.label}</p>
+            <hr>
+          `;
+          }
+        } catch (err) {
+          console.error("Error analyzing audio chunk:", err);
+        }
+      }
+
+      // Signal WebSocket connection for call setup
       function connectSignalSocket() {
         signalSocket = new WebSocket(
           `ws://localhost:8000/ws/send_call_request?token=${token}`
@@ -65,7 +122,6 @@
                 room_id: roomId,
               })
             );
-
             if (accept) {
               await startVoiceChat();
             }
@@ -89,7 +145,6 @@
 
       connectSignalSocket();
 
-      // Call user button
       document.getElementById("callBtn").onclick = () => {
         const calleeId = parseInt(document.getElementById("calleeId").value);
         if (!calleeId) {
@@ -108,7 +163,6 @@
         );
       };
 
-      // Start voice chat WS + audio processing
       async function startVoiceChat() {
         voiceSocket = new WebSocket(
           `ws://localhost:8000/ws/start_voice_chat/${roomId}?token=${token}`
@@ -121,19 +175,49 @@
           audioContext = new (window.AudioContext ||
             window.webkitAudioContext)();
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          input = audioContext.createMediaStreamSource(stream);
 
+          input = audioContext.createMediaStreamSource(stream);
           processor = audioContext.createScriptProcessor(2048, 1, 1);
           input.connect(processor);
           processor.connect(audioContext.destination);
 
+          // Buffer to collect samples for analysis only
+          let analysisBuffer = [];
+          const analysisSampleRate = 16000;
+          const analysisIntervalMs = 100000;
+          const samplesPerInterval =
+            (analysisSampleRate * analysisIntervalMs) / 1000;
+
           processor.onaudioprocess = (e) => {
             const inputData = e.inputBuffer.getChannelData(0);
             const float32Array = new Float32Array(inputData);
+
+            // 1) Stream raw audio data immediately for voice call
             if (voiceSocket.readyState === WebSocket.OPEN) {
               voiceSocket.send(float32Array.buffer);
             }
+
+            // 2) Collect audio samples separately for analysis
+            analysisBuffer.push(...inputData);
+
+            // 3) If enough samples collected for analysis chunk, extract and send
+            while (analysisBuffer.length >= samplesPerInterval) {
+              const chunk = analysisBuffer.slice(0, samplesPerInterval);
+              analysisBuffer = analysisBuffer.slice(samplesPerInterval);
+
+              const wavBlob = float32ToWav(chunk, analysisSampleRate);
+              sendForAnalysis(wavBlob);
+            }
           };
+
+          // Send remaining samples every 5 seconds (even if less than full chunk)
+          analysisInterval = setInterval(() => {
+            if (analysisBuffer.length > 0) {
+              const wavBlob = float32ToWav(analysisBuffer, analysisSampleRate);
+              analysisBuffer = [];
+              sendForAnalysis(wavBlob);
+            }
+          }, analysisIntervalMs);
 
           voiceSocket.onmessage = (event) => {
             if (typeof event.data === "string" && event.data === "END_CALL") {
@@ -170,7 +254,6 @@
         };
       }
 
-      // End call button
       document.getElementById("endCallBtn").onclick = () => {
         if (voiceSocket && voiceSocket.readyState === WebSocket.OPEN) {
           const encoder = new TextEncoder();
@@ -179,13 +262,13 @@
         stopCall();
       };
 
-      // Stop and cleanup
       function stopCall() {
         if (processor) processor.disconnect();
         if (input) input.disconnect();
         if (stream) {
           stream.getTracks().forEach((t) => t.stop());
         }
+        clearInterval(analysisInterval);
         if (voiceSocket && voiceSocket.readyState === WebSocket.OPEN) {
           voiceSocket.close();
         }
@@ -198,7 +281,6 @@
         roomId = null;
       }
 
-      // Hate speech detection form handling
       document
         .getElementById("audioForm")
         .addEventListener("submit", async (e) => {
@@ -212,8 +294,11 @@
           formData.append("file", file);
 
           try {
-            const res = await fetch("http://localhost:8000/analyze-audio", {
+            const res = await fetch("http://localhost:8001/analyze-audio", {
               method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
               body: formData,
             });
 
@@ -223,6 +308,7 @@
               document.getElementById("result").innerHTML += `
               <p><strong>Transcript:</strong> ${data.transcript}</p>
               <p><strong>Label:</strong> ${data.label}</p>
+              <hr>
             `;
             } else {
               document.getElementById("result").textContent =
