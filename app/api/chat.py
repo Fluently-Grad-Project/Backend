@@ -197,115 +197,88 @@ active_calls = {}                 # room_id -> (caller_id, callee_id)
 def generate_room_id():
     return str(uuid.uuid4())
 
+
 @router.websocket("/ws/send_call_request")
 async def signal_socket(websocket: WebSocket, user=Depends(get_current_user_ws)):
     await websocket.accept()
     user_connections[user.id] = websocket
-    print(f"[Signal] User {user.first_name} connected")
-
+    print("Signal: user connected", user.id)
     try:
         while True:
             data = await websocket.receive_json()
             event = data.get("event")
-
             if event == "call_user":
-                callee_id = data.get("callee_id")
-                if callee_id is None:
-                    continue
-                room_id = generate_room_id()
-                active_calls[room_id] = (user.id, callee_id)
-
-                callee_ws = user_connections.get(callee_id)
-                if callee_ws and callee_ws.application_state == WebSocketState.CONNECTED:
-                    await callee_ws.send_json({
+                callee_id = data["callee_id"]
+                rid = generate_room_id()
+                active_calls[rid] = (user.id, callee_id)
+                callee = user_connections.get(callee_id)
+                if callee:
+                    await callee.send_json({
                         "event": "incoming_call",
                         "from_user": {"id": user.id, "name": user.first_name},
-                        "room_id": room_id
+                        "room_id": rid
                     })
-
             elif event == "call_response":
-                accepted = data.get("accepted")
-                room_id = data.get("room_id")
-
-                if room_id not in active_calls:
-                    continue
-
-                caller_id, callee_id = active_calls.get(room_id, (None, None))
-                caller_ws = user_connections.get(caller_id)
-
-                if accepted and caller_ws and caller_ws.application_state == WebSocketState.CONNECTED:
-                    await caller_ws.send_json({
-                        "event": "call_accepted",
-                        "room_id": room_id
-                    })
-                else:
-                    if caller_ws and caller_ws.application_state == WebSocketState.CONNECTED:
-                        await caller_ws.send_json({
-                            "event": "call_rejected",
-                            "room_id": room_id
-                        })
-                    active_calls.pop(room_id, None)
-
+                rid = data["room_id"]
+                accepted = data["accepted"]
+                if rid in active_calls:
+                    caller, callee = active_calls[rid]
+                    ws = user_connections.get(caller)
+                    event_name = "call_accepted" if accepted else "call_rejected"
+                    if ws:
+                        await ws.send_json({"event": event_name, "room_id": rid})
+                    if not accepted:
+                        active_calls.pop(rid)
     except WebSocketDisconnect:
-        print(f"[Signal] User {user.first_name} disconnected")
+        print("Signal: disconnected", user.id)
     finally:
         user_connections.pop(user.id, None)
 
-
 @router.websocket("/ws/start_voice_chat/{room_id}")
-async def voice_chat(
-    websocket: WebSocket,
-    room_id: str,
-    token: Annotated[str | None, Query()] = None,
-    user=Depends(get_current_user_ws),
-):
-    participants = active_calls.get(room_id)
-
-    if not participants or user.id not in participants:
-        await websocket.accept()
+async def voice_chat(websocket: WebSocket, room_id: str, user=Depends(get_current_user_ws)):
+    parts = active_calls.get(room_id)
+    if not parts or user.id not in parts:
         await websocket.close()
         return
-
     await websocket.accept()
-    print(f"[VoiceChat] {user.first_name} joined room {room_id}")
-
-    #user's socket
-    if room_id not in voice_rooms:
-        voice_rooms[room_id] = {}
-
     voice_rooms[room_id][user.id] = websocket
-
+    print("VoiceChat joined:", user.id)
     try:
         while True:
             data = await websocket.receive_bytes()
-
             if data == b"END_CALL":
-                print(f"[VoiceChat] {user.first_name} ended the call in {room_id}")
-
-                for uid, peer_ws in voice_rooms[room_id].items():
-                    if peer_ws.application_state == WebSocketState.CONNECTED:
-                        try:
-                            await peer_ws.send_text("END_CALL")
-                            await peer_ws.close()
-                        except Exception as e:
-                            print(f"[VoiceChat] Error sending END_CALL: {e}")
-
-                active_calls.pop(room_id, None)
+                for pid, ws in voice_rooms[room_id].items():
+                    if ws.application_state == WebSocketState.CONNECTED:
+                        await ws.send_text("END_CALL")
+                        await ws.close()
                 break
-
-            #we forward audio to the other user
-            for uid, peer_ws in voice_rooms[room_id].items():
-                if uid != user.id and peer_ws.application_state == WebSocketState.CONNECTED:
-                    try:
-                        await peer_ws.send_bytes(data)
-                    except Exception as e:
-                        print(f"[VoiceChat] Error forwarding audio: {e}")
-
+            for pid, ws in voice_rooms[room_id].items():
+                if pid != user.id:
+                    await ws.send_bytes(data)
     except WebSocketDisconnect:
-        print(f"[VoiceChat] {user.first_name} disconnected from {room_id}")
-
+        pass
     finally:
         voice_rooms[room_id].pop(user.id, None)
         if not voice_rooms[room_id]:
-            voice_rooms.pop(room_id, None)
-        print(f"[VoiceChat] Active users in {room_id}: {len(voice_rooms.get(room_id, {}))}")
+            active_calls.pop(room_id, None)
+
+@router.post("/analyze-audio")
+async def analyze_audio(file: UploadFile = File(...)):
+    tmp = f"temp_audio/{uuid.uuid4()}"
+    os.makedirs(tmp, exist_ok=True)
+    in_path = f"{tmp}/{file.filename}"
+    out_wav = f"{tmp}/{uuid.uuid4()}.wav"
+    with open(in_path, "wb") as f:
+        f.write(await file.read())
+    try:
+        subprocess.run(["ffmpeg", "-y", "-i", in_path, "-ar", "16000", "-ac", "1", out_wav], check=True)
+        detector = get_hate_detector()
+        text = detector.transcribe(out_wav)
+        label = detector.predict(text)
+        return {"transcript": text, "label": label}
+    except subprocess.CalledProcessError:
+        raise HTTPException(400, "Conversion failed")
+    finally:
+        for p in [in_path, out_wav]:
+            if os.path.exists(p): os.remove(p)
+        if os.path.exists(tmp): os.rmdir(tmp)
