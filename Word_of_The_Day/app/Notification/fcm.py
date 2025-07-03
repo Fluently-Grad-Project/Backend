@@ -77,20 +77,10 @@ def send_notification(payload: pushNotificationPayload):
                     "channel_id": "high_importance_channel",  # Required for Android 8+
                 }
             },
-            "apns": { 
-                "payload": {"aps": {"mutable-content": 1}},
-                "fcm_options": {
-                    "image": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png"
-                },
-            },
-            "webpush": {
-                "notification": {
-                    "icon": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png",  # Add this line
-                    "badge": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png",  # Optional badge icon
-                }
+
             },
         }
-    }
+    
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -111,7 +101,7 @@ def send_word_notification(token: str, word_data: WordOfTheDayPayload):
             "notification": {
                 "title": "📖 Word of the Day: " + word_data.word,
                 "body": word_data.description,
-                "image": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png",
+                
             },
             "data": {
                 "type": "word_of_the_day",
@@ -122,7 +112,7 @@ def send_word_notification(token: str, word_data: WordOfTheDayPayload):
             },
             "android": {
                 "notification": {
-                    "image": "https://i.postimg.cc/4yFQKt2k/fluently-high-resolution-logo-transparent.png",
+                    
                     "channel_id": "word_of_the_day_channel",  # Custom channel
                 }
             },

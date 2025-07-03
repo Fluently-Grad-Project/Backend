@@ -8,6 +8,7 @@ from app.api.chat import router as chat_router
 from app.core.websocket_manager import ConnectionManager
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from app.database.connection import get_db
 logging.basicConfig(
     filename="chat.log", level=logging.INFO, format="%(asctime)s - %(message)s"
@@ -49,24 +50,22 @@ app.include_router(
 )
 app.include_router(
     activity.router, prefix="/activity", tags=["Activity"])
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 app.add_middleware(LanguageMiddleware)
 
 from apscheduler.schedulers.background import BackgroundScheduler
-
+db = next(get_db())
 @app.on_event("startup")
 def init_scheduler():
     scheduler = BackgroundScheduler()
     
     def check_job():
-        db = next(get_db())
+        
         try:
             print("Checking suspended users...")
             ReportService(db).check_expired_suspensions()
-            print("Resets streaks for users who didn't practice today")
-            activity.check_activity_streaks(db)
         except Exception as e:
             print(f"Error checking suspensions: {e}")
         finally:
@@ -74,6 +73,12 @@ def init_scheduler():
     
   
     scheduler.add_job(check_job, 'interval', hours=1)
+    scheduler.add_job(
+    lambda: activity.reset_inactive_streaks(db),  
+    CronTrigger(hour=18, minute=19),
+    name='reset_inactive_streaks'
+)
     scheduler.start()
+    print("Streak reset at 00:05 AM")
 
     

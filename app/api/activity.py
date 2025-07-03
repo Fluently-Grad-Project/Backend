@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 @router.patch("/update_hours")
 async def update_hours(
-    hours_data: UpdatePracticeHours,
+    time_data: UpdatePracticeHours,
     current_user: UserData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -35,18 +35,30 @@ async def update_hours(
             status_code=404,
             detail=f"Activity tracker record not found for this user: {current_user.id}",
         )
-        if hours_data.hours_to_add <= 0:
+        if time_data.hours_to_add <= 0:
          raise HTTPException(
             status_code=400,
             detail="Hours to add must be a positive integer"
         )
+        if time_data.minutes <= 0:
+         raise HTTPException(
+            status_code=400,
+            detail="minutes to add must be a positive integer"
+        )
         update_streak(db, current_user)
          # For debugging
-        activity_record.number_of_hours += hours_data.hours_to_add
+        total_minutes_to_add = time_data.hours_to_add * 60 + time_data.minutes
+        activity_record.number_of_minutes += total_minutes_to_add
         db.commit()
         db.refresh(activity_record)
+        hours = activity_record.number_of_minutes // 60
+        minutes = activity_record.number_of_minutes % 60
     
-        return activity_record
+        return {
+        "total_time": f"{hours}h {minutes}m",
+        "total_minutes": activity_record.number_of_minutes,
+        "streaks": activity_record.streaks
+    }
 def update_streak(
       db:Session= Depends(get_db),
       current_user: UserData = Depends(get_current_user)
@@ -86,6 +98,7 @@ def reset_inactive_streaks(db: Session):
     ).all()
 
     for user in inactive_users:
+        print(f"Resetting streak for user {user.user_id} who hasn't practiced since {user.last_practiced_date}")
         user.streaks = 0 
     db.commit()
    
@@ -119,7 +132,13 @@ async def get_practice_hours(
             detail=f"Activity tracker record not found for user: {current_user.id}"
         )
     
-    return {"total_practice_hours": activity_record.number_of_hours}     
+    hours = activity_record.number_of_minutes // 60
+    minutes = activity_record.number_of_minutes % 60
+    
+    return {
+        "total_time": f"{hours}h {minutes}m"
+        
+    }     
 
 
 
