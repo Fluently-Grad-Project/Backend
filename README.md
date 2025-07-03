@@ -639,14 +639,14 @@ Response:
 
 ### 5. **Start Voice Chat Monitoring**
 
-**Endpoint:** `WebSocket /ws/start_voice_chat?token=YOUR_JWT_TOKEN`
+**Endpoint:** `WebSocket /ws/start_voice_chat/{roomId}?token=YOUR_JWT_TOKEN`
 Starts real-time voice chat monitoring for offensive or hate speech.
 
 **Authentication:**
 Token must be passed as a query parameter:
 
 ```
-/ws/start_voice_chat?token=YOUR_JWT_TOKEN
+/ws/start_voice_chat/{roomId}?token=YOUR_JWT_TOKEN
 ```
 
 **Headers:**
