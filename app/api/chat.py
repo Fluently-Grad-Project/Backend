@@ -1,7 +1,10 @@
 import base64
+from collections import defaultdict
+from datetime import datetime
 import json
 from operator import or_
 import os
+import shutil
 import time
 from typing import Annotated, List
 import uuid
@@ -14,8 +17,8 @@ from sqlalchemy.orm import Session
 from app.core.auth_manager import get_current_user, get_current_user_ws
 from app.core.websocket_manager import manager
 from app.database.connection import get_db
-from app.database.models import ChatMessage, UserData
-from app.models.nlp_model import HateSpeechDetector
+from app.database.models import ActivityTracker, ChatMessage, UserData
+from app.models.nlp_model import HateSpeechDetector, get_hate_detector
 from app.schemas.chat_schemas import ChatMessageResponse, UserContact
 from app.services.chat_service import mark_messages_as_delivered
 
@@ -185,69 +188,97 @@ def mark_messages_as_read(
         raise HTTPException(500, f"Failed to mark messages as read: {str(e)}")
 
 
-#   ================================================    #
-@router.websocket("/ws/start_voice_chat")
-async def start_voice_chat(
-    websocket: WebSocket,
-    token: Annotated[str | None, Query()] = None,
-    user: UserData = Depends(get_current_user_ws),
-):
+# globals for connections
+user_connections = {}              # user_id -> WebSocket (for signaling)
+voice_rooms = defaultdict(set)    # room_id -> Set[WebSocket] (for voice data)
+active_calls = {}                 # room_id -> (caller_id, callee_id)
+# ------------------------------------------------------------------------------------------------
+
+def generate_room_id():
+    return str(uuid.uuid4())
+
+
+@router.websocket("/ws/send_call_request")
+async def signal_socket(websocket: WebSocket, user=Depends(get_current_user_ws)):
     await websocket.accept()
-    print(f"[AudioMonitor] Connected: {user.first_name}")
-
-    TEMP_DIR = "temp_audio"
-    os.makedirs(TEMP_DIR, exist_ok=True)
-
-    buffer = b""
-
+    user_connections[user.id] = websocket
+    print("Signal: user connected", user.id)
     try:
         while True:
-            try:
-                chunk = await websocket.receive_bytes()
-                buffer += chunk
-
-                file_id = str(uuid.uuid4())
-                input_path = os.path.join(TEMP_DIR, f"{file_id}.opus")
-                converted_path = os.path.join(TEMP_DIR, f"{file_id}_converted.wav")
-
-                with open(input_path, "wb") as f:
-                    f.write(buffer)
-                buffer = b""
-
-                subprocess.run([
-                    r"C:\ffmpeg\ffmpeg.exe", "-y", "-i", input_path,
-                    "-ar", "16000", "-ac", "1", "-acodec", "pcm_s16le", converted_path
-                ], check=True)
-
-                text = hate_detector.transcribe(converted_path)
-                label = hate_detector.predict(text)
-
-                print(f"[{user.first_name}] Transcript: {text} → {label}")
-
-                if label in ["Offensive", "Hate"]:
-                    if label == "Hate":
-                        user.hate_count += 1
-                        if user.hate_count >= 3:
-                            user.is_locked = "suspended"
-                            await websocket.send_json({"action": "suspend", "reason": "hate speech"})
-                        else:
-                            await websocket.send_json({"action": "warn", "reason": "hate speech"})
-                    else:
-                        await websocket.send_json({"action": "warn", "reason": "offensive language"})
-                    await websocket.close()
-                    break
-
-            except subprocess.CalledProcessError:
-                await websocket.send_json({"error": "Failed to convert audio"})
-            except Exception as e:
-                await websocket.send_json({"error": f"Processing failed: {str(e)}"})
-            finally:
-                for p in [input_path, converted_path]:
-                    if os.path.exists(p):
-                        os.remove(p)
-
+            data = await websocket.receive_json()
+            event = data.get("event")
+            if event == "call_user":
+                callee_id = data["callee_id"]
+                rid = generate_room_id()
+                active_calls[rid] = (user.id, callee_id)
+                callee = user_connections.get(callee_id)
+                if callee:
+                    await callee.send_json({
+                        "event": "incoming_call",
+                        "from_user": {"id": user.id, "name": user.first_name},
+                        "room_id": rid
+                    })
+            elif event == "call_response":
+                rid = data["room_id"]
+                accepted = data["accepted"]
+                if rid in active_calls:
+                    caller, callee = active_calls[rid]
+                    ws = user_connections.get(caller)
+                    event_name = "call_accepted" if accepted else "call_rejected"
+                    if ws:
+                        await ws.send_json({"event": event_name, "room_id": rid})
+                    if not accepted:
+                        active_calls.pop(rid)
     except WebSocketDisconnect:
-        print(f"[AudioMonitor] Disconnected: {user.first_name}")
-    except Exception as e:
-        print(f"Voice Chat Error: {e}")
-        await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+        print("Signal: disconnected", user.id)
+    finally:
+        user_connections.pop(user.id, None)
+
+@router.websocket("/ws/start_voice_chat/{room_id}")
+async def voice_chat(websocket: WebSocket, room_id: str, user=Depends(get_current_user_ws)):
+    parts = active_calls.get(room_id)
+    if not parts or user.id not in parts:
+        await websocket.close()
+        return
+    await websocket.accept()
+    voice_rooms[room_id][user.id] = websocket
+    print("VoiceChat joined:", user.id)
+    try:
+        while True:
+            data = await websocket.receive_bytes()
+            if data == b"END_CALL":
+                for pid, ws in voice_rooms[room_id].items():
+                    if ws.application_state == WebSocketState.CONNECTED:
+                        await ws.send_text("END_CALL")
+                        await ws.close()
+                break
+            for pid, ws in voice_rooms[room_id].items():
+                if pid != user.id:
+                    await ws.send_bytes(data)
+    except WebSocketDisconnect:
+        pass
+    finally:
+        voice_rooms[room_id].pop(user.id, None)
+        if not voice_rooms[room_id]:
+            active_calls.pop(room_id, None)
+
+@router.post("/analyze-audio")
+async def analyze_audio(file: UploadFile = File(...)):
+    tmp = f"temp_audio/{uuid.uuid4()}"
+    os.makedirs(tmp, exist_ok=True)
+    in_path = f"{tmp}/{file.filename}"
+    out_wav = f"{tmp}/{uuid.uuid4()}.wav"
+    with open(in_path, "wb") as f:
+        f.write(await file.read())
+    try:
+        subprocess.run(["ffmpeg", "-y", "-i", in_path, "-ar", "16000", "-ac", "1", out_wav], check=True)
+        detector = get_hate_detector()
+        text = detector.transcribe(out_wav)
+        label = detector.predict(text)
+        return {"transcript": text, "label": label}
+    except subprocess.CalledProcessError:
+        raise HTTPException(400, "Conversion failed")
+    finally:
+        for p in [in_path, out_wav]:
+            if os.path.exists(p): os.remove(p)
+        if os.path.exists(tmp): os.rmdir(tmp)

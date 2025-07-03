@@ -637,50 +637,113 @@ Response:
 ---
 
 
-### 5. **Start Voice Chat Monitoring**
 
-**Endpoint:** `WebSocket /ws/start_voice_chat?token=YOUR_JWT_TOKEN`
-Starts real-time voice chat monitoring for offensive or hate speech.
+
+### 5. **Send Call Request**
+
+**Endpoint:** `WebSocket /ws/send_call_request?token=YOUR_JWT_TOKEN`
+Used for initiating and handling signaling between users for a voice call (offer/answer style).
 
 **Authentication:**
 Token must be passed as a query parameter:
 
 ```
-/ws/start_voice_chat?token=YOUR_JWT_TOKEN
+/ws/send_call_request?token=YOUR_JWT_TOKEN
 ```
 
 **Headers:**
 None (token is in URL)
 
+**Sent Events (Client → Server):**
+
+```json
+{
+  "event": "call_user",
+  "callee_id": 12
+}
+```
+
+Initiates a call to another user by ID.
+
+```json
+{
+  "event": "call_response",
+  "accepted": true,
+  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
+}
+```
+
+Response to an incoming call with `accepted: true` or `false`.
+
+**Received Events (Server → Client):**
+
+```json
+{
+  "event": "incoming_call",
+  "from_user": { "id": 10, "name": "Alice" },
+  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
+}
+```
+
+Notifies the callee of an incoming call.
+
+```json
+{
+  "event": "call_accepted",
+  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
+}
+```
+
+The callee accepted — start voice chat.
+
+```json
+{
+  "event": "call_rejected",
+  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
+}
+```
+
+The callee rejected the call.
+
+> ℹ️ This socket remains open to manage multiple call events per session.
+
+---
+
+### 6. **Start Voice Chat**
+
+**Endpoint:** `WebSocket /ws/start_voice_chat/{roomId}?token=YOUR_JWT_TOKEN`
+Starts a real-time audio streaming session for a 1-on-1 voice call.
+
+**Authentication:**
+Token must be passed as a query parameter:
+
+```
+/ws/start_voice_chat/{roomId}?token=YOUR_JWT_TOKEN
+```
+
+**Headers:**
+None
+
 **Body:**
-Sends binary audio data (`audio/webm`) in small chunks over WebSocket.
+Sends raw binary audio data (e.g., `Float32Array`) over WebSocket in real time.
 
-**Response Examples (WebSocket Messages):**
+**Special Control Message (to end call):**
+The string `"END_CALL"` must be sent as binary to indicate call termination.
 
-```json
-{
-  "action": "warn",
-  "reason": "offensive language"
-}
-```
+**Received Messages:**
 
-```json
-{
-  "action": "warn",
-  "reason": "hate speech"
-}
-```
+* Binary audio data from the other user (as `ArrayBuffer`)
+* Control message:
 
-```json
-{
-  "action": "suspend",
-  "reason": "hate speech"
-}
-```
+  ```text
+  "END_CALL"
+  ```
 
-> ⚠️ This WebSocket will close automatically after sending a warning or suspension message.
+  Indicates the other user ended the call.
+
+> ⚠️ If a user sends `"END_CALL"`, the backend notifies and disconnects both peers.
 >
-> ⚠️ A user is suspended after **3 hate speech violations**.
+> ℹ️ Only users who are part of the `active_calls` session can access this WebSocket.
 
 ----
 
