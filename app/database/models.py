@@ -120,6 +120,7 @@ class ActivityTracker(BaseORM):
     user_id: Mapped[int] = mapped_column(ForeignKey("user_data.id"))
     streaks: Mapped[int] = mapped_column(Integer)
     number_of_hours: Mapped[int] = mapped_column(Integer)
+    number_of_minutes: Mapped[int] = mapped_column(Integer, default=0)
     last_practiced_date: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True
