@@ -748,6 +748,56 @@ The string `"END_CALL"` must be sent as binary to indicate call termination.
 ----
 
 
+
+### 7. **Analyze Audio**
+
+**Endpoint:** `POST http://localhost:8001/analyze-audio` 
+Used for uploading an audio file to transcribe speech and detect hate speech content.
+
+**Authentication:**
+Token must be passed in the `Authorization` header as a Bearer token
+
+```
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+**Headers:**
+
+* `Content-Type: multipart/form-data` (for file upload)
+* `Authorization: Bearer YOUR_JWT_TOKEN`
+
+**Request Body (multipart/form-data):**
+
+| Field | Type | Description           |
+| ----- | ---- | --------------------- |
+| file  | File | Audio file to analyze |
+
+**Response (application/json):**
+
+```json
+{
+  "transcript": "Transcribed text from audio",
+  "label": "hate_speech" | "normal" | "offensive" | ...
+}
+```
+
+* `transcript`: Text transcribed from the audio.
+* `label`: Classification result indicating hate speech or other categories.
+
+**Behavior:**
+
+* Converts uploaded audio to 16kHz mono WAV internally before processing.
+* If `label` is `"hate_speech"`, a notification is sent internally to `/notify-hate-speech` with the transcript and label, including the Authorization header if provided.
+* Temporary files are cleaned up automatically.
+
+**Error Responses:**
+
+* `400 Bad Request` if audio conversion fails or invalid file is provided.
+* Other HTTP errors may occur if internal notification fails.
+
+---
+
+
 ## User Rating Endpoints
 
 ### 1. **Rate a User**

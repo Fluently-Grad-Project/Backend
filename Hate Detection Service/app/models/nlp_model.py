@@ -9,7 +9,7 @@ class HateSpeechDetector:
     def __init__(
         self,
         tokenizer_name: str = "bert-base-uncased",
-        state_dict_path: str = r"app\hate_detector_model\nlp_hate_detector_model (1).pth",
+        state_dict_path: str = r"hate_detector_model\nlp_hate_detector_model (1).pth",
         whisper_model_name: str = "base",
         ffmpeg_path: str = r"C:\ffmpeg\ffmpeg.exe",
     ):
@@ -31,10 +31,10 @@ class HateSpeechDetector:
             return
 
         with self._lock:
-            if self.initialized:  # Double-check inside lock
+            if self.initialized:
                 return
 
-            whisper.audio.FFMPEG_PATH = self.ffmpeg_path
+            # whisper.audio.FFMPEG_PATH = self.ffmpeg_path
             self.tokenizer = BertTokenizer.from_pretrained(self.tokenizer_name)
             self.model = BertForSequenceClassification.from_pretrained(self.tokenizer_name, num_labels=3)
             self.model.load_state_dict(torch.load(self.state_dict_path, map_location=torch.device("cpu")))

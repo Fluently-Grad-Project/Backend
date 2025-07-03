@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+whisper
+torch
+transformers
+ffmpeg-python
+httpx
