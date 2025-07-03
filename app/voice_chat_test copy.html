@@ -2,100 +2,237 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Voice Chat</title>
+    <title>Voice Chat with Signaling</title>
   </head>
   <body>
-    <h1>Voice Chat Room</h1>
-    <button id="start">Start Call</button>
-    <button id="stop" disabled>End Call</button>
+    <h1>Voice Chat</h1>
+
+    <div>
+      <label
+        >Call User ID:
+        <input type="number" id="calleeId" />
+      </label>
+      <button id="callBtn">Call User</button>
+    </div>
+
+    <button id="endCallBtn" disabled>End Call</button>
+
+    <h2>Hate Speech Detection (Manual Upload)</h2>
+    <form id="audioForm">
+      <input type="file" id="audioFile" accept="audio/*" required />
+      <button type="submit">Analyze</button>
+    </form>
+
+    <div id="result"></div>
 
     <script>
-      let socket;
+      let signalSocket;
+      let voiceSocket;
       let audioContext;
       let processor;
       let input;
       let stream;
-      let roomId = "room1";
+      let mediaRecorder;
+      let audioChunks = [];
+      let analysisInterval;
+      let roomId = null;
 
       const token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4LCJlbWFpbCI6Im1lbm5hdGFsbGFoYWhtZWQ4OTJAZ21haWwuY29tIiwiZnVsbF9uYW1lIjoibTIgYSIsImlzX3ZlcmlmaWVkIjp0cnVlLCJ0eXBlIjoiQWNjZXNzIiwiZXhwIjoxNzUxNTM5OTg5fQ.xoi3vIpWkav0lmpm6tTicnOS__QSosYMnsm6RIv9VR4";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4LCJlbWFpbCI6Im1lbm5hdGFsbGFoYWhtZWQ4OTJAZ21haWwuY29tIiwiZnVsbF9uYW1lIjoibTIgYSIsImlzX3ZlcmlmaWVkIjp0cnVlLCJ0eXBlIjoiQWNjZXNzIiwiZXhwIjoxNzUxNTQ0NTYzfQ.hH2mYe1lu1e3TqPCvTaW3_OBxyTOCF8oAj3_M16PjD0";
 
-      const startBtn = document.getElementById("start");
-      const stopBtn = document.getElementById("stop");
-
-      startBtn.onclick = async () => {
-        socket = new WebSocket(
-          `ws://localhost:8000/ws/voice/${roomId}?token=${token}`
+      // Connect signaling WebSocket
+      function connectSignalSocket() {
+        signalSocket = new WebSocket(
+          `ws://localhost:8000/ws/send_call_request?token=${token}`
         );
-        socket.binaryType = "arraybuffer";
 
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        input = audioContext.createMediaStreamSource(stream);
+        signalSocket.onopen = () => {
+          console.log("[Signal] Connected");
+        };
 
-        processor = audioContext.createScriptProcessor(2048, 1, 1);
-        input.connect(processor);
-        processor.connect(audioContext.destination);
+        signalSocket.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
 
-        processor.onaudioprocess = (e) => {
-          const inputData = e.inputBuffer.getChannelData(0);
-          const float32Array = new Float32Array(inputData);
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(float32Array.buffer);
+          if (data.event === "incoming_call") {
+            const accept = confirm(
+              `${data.from_user.name} is calling you. Accept?`
+            );
+            roomId = data.room_id;
+            signalSocket.send(
+              JSON.stringify({
+                event: "call_response",
+                accepted: accept,
+                room_id: roomId,
+              })
+            );
+
+            if (accept) {
+              await startVoiceChat();
+            }
+          }
+
+          if (data.event === "call_accepted") {
+            roomId = data.room_id;
+            await startVoiceChat();
+          }
+
+          if (data.event === "call_rejected") {
+            alert("Call was rejected.");
+            resetCallState();
           }
         };
 
-        socket.onmessage = (event) => {
-          if (typeof event.data === "string" && event.data === "END_CALL") {
-            alert("Call ended by the other user.");
-            stopCall();
-            return;
-          }
-
-          const arrayBuffer = event.data;
-          const float32Array = new Float32Array(arrayBuffer);
-          const buffer = audioContext.createBuffer(
-            1,
-            float32Array.length,
-            audioContext.sampleRate
-          );
-          buffer.copyToChannel(float32Array, 0);
-          const source = audioContext.createBufferSource();
-          source.buffer = buffer;
-          source.connect(audioContext.destination);
-          source.start();
+        signalSocket.onclose = () => {
+          console.log("[Signal] Disconnected");
         };
+      }
 
-        socket.onclose = () => {
-          stopCall();
-        };
+      connectSignalSocket();
 
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
+      // Call user button
+      document.getElementById("callBtn").onclick = () => {
+        const calleeId = parseInt(document.getElementById("calleeId").value);
+        if (!calleeId) {
+          alert("Please enter a valid User ID to call");
+          return;
+        }
+        if (!signalSocket || signalSocket.readyState !== WebSocket.OPEN) {
+          alert("Signal connection not ready");
+          return;
+        }
+        signalSocket.send(
+          JSON.stringify({
+            event: "call_user",
+            callee_id: calleeId,
+          })
+        );
       };
 
-      stopBtn.onclick = () => {
-        // Send END_CALL as raw bytes
-        if (socket && socket.readyState === WebSocket.OPEN) {
+      // Start voice chat WS + audio processing
+      async function startVoiceChat() {
+        voiceSocket = new WebSocket(
+          `ws://localhost:8000/ws/start_voice_chat/${roomId}?token=${token}`
+        );
+        voiceSocket.binaryType = "arraybuffer";
+
+        voiceSocket.onopen = async () => {
+          console.log("[VoiceChat] Connected");
+
+          audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          input = audioContext.createMediaStreamSource(stream);
+
+          processor = audioContext.createScriptProcessor(2048, 1, 1);
+          input.connect(processor);
+          processor.connect(audioContext.destination);
+
+          processor.onaudioprocess = (e) => {
+            const inputData = e.inputBuffer.getChannelData(0);
+            const float32Array = new Float32Array(inputData);
+            if (voiceSocket.readyState === WebSocket.OPEN) {
+              voiceSocket.send(float32Array.buffer);
+            }
+          };
+
+          voiceSocket.onmessage = (event) => {
+            if (typeof event.data === "string" && event.data === "END_CALL") {
+              alert("Call ended by the other user.");
+              stopCall();
+              return;
+            }
+
+            const arrayBuffer = event.data;
+            const float32Array = new Float32Array(arrayBuffer);
+            const buffer = audioContext.createBuffer(
+              1,
+              float32Array.length,
+              audioContext.sampleRate
+            );
+            buffer.copyToChannel(float32Array, 0);
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start();
+          };
+
+          voiceSocket.onclose = () => {
+            console.log("[VoiceChat] Disconnected");
+            stopCall();
+          };
+
+          document.getElementById("endCallBtn").disabled = false;
+        };
+
+        voiceSocket.onerror = (err) => {
+          console.error("Voice socket error:", err);
+          stopCall();
+        };
+      }
+
+      // End call button
+      document.getElementById("endCallBtn").onclick = () => {
+        if (voiceSocket && voiceSocket.readyState === WebSocket.OPEN) {
           const encoder = new TextEncoder();
-          socket.send(encoder.encode("END_CALL"));
+          voiceSocket.send(encoder.encode("END_CALL"));
         }
         stopCall();
       };
 
+      // Stop and cleanup
       function stopCall() {
         if (processor) processor.disconnect();
         if (input) input.disconnect();
         if (stream) {
           stream.getTracks().forEach((t) => t.stop());
         }
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.close();
+        if (voiceSocket && voiceSocket.readyState === WebSocket.OPEN) {
+          voiceSocket.close();
         }
-
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
+        document.getElementById("endCallBtn").disabled = true;
+        roomId = null;
       }
+
+      function resetCallState() {
+        stopCall();
+        roomId = null;
+      }
+
+      // Hate speech detection form handling
+      document
+        .getElementById("audioForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const fileInput = document.getElementById("audioFile");
+          const file = fileInput.files[0];
+          if (!file) return alert("Please select an audio file.");
+
+          const formData = new FormData();
+          formData.append("file", file);
+
+          try {
+            const res = await fetch("http://localhost:8000/analyze-audio", {
+              method: "POST",
+              body: formData,
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+              document.getElementById("result").innerHTML += `
+              <p><strong>Transcript:</strong> ${data.transcript}</p>
+              <p><strong>Label:</strong> ${data.label}</p>
+            `;
+            } else {
+              document.getElementById("result").textContent =
+                data.detail || "Something went wrong.";
+            }
+          } catch (err) {
+            document.getElementById("result").textContent =
+              "Error: " + err.message;
+          }
+        });
     </script>
   </body>
 </html>
