@@ -1,7 +1,10 @@
 import base64
+from collections import defaultdict
+from datetime import datetime
 import json
 from operator import or_
 import os
+import shutil
 import time
 from typing import Annotated, List
 import uuid
@@ -14,8 +17,8 @@ from sqlalchemy.orm import Session
 from app.core.auth_manager import get_current_user, get_current_user_ws
 from app.core.websocket_manager import manager
 from app.database.connection import get_db
-from app.database.models import ChatMessage, UserData
-from app.models.nlp_model import HateSpeechDetector
+from app.database.models import ActivityTracker, ChatMessage, UserData
+from app.models.nlp_model import HateSpeechDetector, get_hate_detector
 from app.schemas.chat_schemas import ChatMessageResponse, UserContact
 from app.services.chat_service import mark_messages_as_delivered
 
@@ -185,69 +188,124 @@ def mark_messages_as_read(
         raise HTTPException(500, f"Failed to mark messages as read: {str(e)}")
 
 
-#   ================================================    #
-@router.websocket("/ws/start_voice_chat")
-async def start_voice_chat(
-    websocket: WebSocket,
-    token: Annotated[str | None, Query()] = None,
-    user: UserData = Depends(get_current_user_ws),
-):
+# globals for connections
+user_connections = {}              # user_id -> WebSocket (for signaling)
+voice_rooms = defaultdict(set)    # room_id -> Set[WebSocket] (for voice data)
+active_calls = {}                 # room_id -> (caller_id, callee_id)
+# ------------------------------------------------------------------------------------------------
+
+def generate_room_id():
+    return str(uuid.uuid4())
+
+@router.websocket("/ws/send_call_request")
+async def signal_socket(websocket: WebSocket, user=Depends(get_current_user_ws)):
     await websocket.accept()
-    print(f"[AudioMonitor] Connected: {user.first_name}")
-
-    TEMP_DIR = "temp_audio"
-    os.makedirs(TEMP_DIR, exist_ok=True)
-
-    buffer = b""
+    user_connections[user.id] = websocket
+    print(f"[Signal] User {user.first_name} connected")
 
     try:
         while True:
-            try:
-                chunk = await websocket.receive_bytes()
-                buffer += chunk
+            data = await websocket.receive_json()
+            event = data.get("event")
 
-                file_id = str(uuid.uuid4())
-                input_path = os.path.join(TEMP_DIR, f"{file_id}.opus")
-                converted_path = os.path.join(TEMP_DIR, f"{file_id}_converted.wav")
+            if event == "call_user":
+                callee_id = data.get("callee_id")
+                if callee_id is None:
+                    continue
+                room_id = generate_room_id()
+                active_calls[room_id] = (user.id, callee_id)
 
-                with open(input_path, "wb") as f:
-                    f.write(buffer)
-                buffer = b""
+                callee_ws = user_connections.get(callee_id)
+                if callee_ws and callee_ws.application_state == WebSocketState.CONNECTED:
+                    await callee_ws.send_json({
+                        "event": "incoming_call",
+                        "from_user": {"id": user.id, "name": user.first_name},
+                        "room_id": room_id
+                    })
 
-                subprocess.run([
-                    r"C:\ffmpeg\ffmpeg.exe", "-y", "-i", input_path,
-                    "-ar", "16000", "-ac", "1", "-acodec", "pcm_s16le", converted_path
-                ], check=True)
+            elif event == "call_response":
+                accepted = data.get("accepted")
+                room_id = data.get("room_id")
 
-                text = hate_detector.transcribe(converted_path)
-                label = hate_detector.predict(text)
+                if room_id not in active_calls:
+                    continue
 
-                print(f"[{user.first_name}] Transcript: {text} → {label}")
+                caller_id, callee_id = active_calls.get(room_id, (None, None))
+                caller_ws = user_connections.get(caller_id)
 
-                if label in ["Offensive", "Hate"]:
-                    if label == "Hate":
-                        user.hate_count += 1
-                        if user.hate_count >= 3:
-                            user.is_locked = "suspended"
-                            await websocket.send_json({"action": "suspend", "reason": "hate speech"})
-                        else:
-                            await websocket.send_json({"action": "warn", "reason": "hate speech"})
-                    else:
-                        await websocket.send_json({"action": "warn", "reason": "offensive language"})
-                    await websocket.close()
-                    break
-
-            except subprocess.CalledProcessError:
-                await websocket.send_json({"error": "Failed to convert audio"})
-            except Exception as e:
-                await websocket.send_json({"error": f"Processing failed: {str(e)}"})
-            finally:
-                for p in [input_path, converted_path]:
-                    if os.path.exists(p):
-                        os.remove(p)
+                if accepted and caller_ws and caller_ws.application_state == WebSocketState.CONNECTED:
+                    await caller_ws.send_json({
+                        "event": "call_accepted",
+                        "room_id": room_id
+                    })
+                else:
+                    if caller_ws and caller_ws.application_state == WebSocketState.CONNECTED:
+                        await caller_ws.send_json({
+                            "event": "call_rejected",
+                            "room_id": room_id
+                        })
+                    active_calls.pop(room_id, None)
 
     except WebSocketDisconnect:
-        print(f"[AudioMonitor] Disconnected: {user.first_name}")
-    except Exception as e:
-        print(f"Voice Chat Error: {e}")
-        await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+        print(f"[Signal] User {user.first_name} disconnected")
+    finally:
+        user_connections.pop(user.id, None)
+
+
+@router.websocket("/ws/start_voice_chat/{room_id}")
+async def voice_chat(
+    websocket: WebSocket,
+    room_id: str,
+    token: Annotated[str | None, Query()] = None,
+    user=Depends(get_current_user_ws),
+):
+    participants = active_calls.get(room_id)
+
+    if not participants or user.id not in participants:
+        await websocket.accept()
+        await websocket.close()
+        return
+
+    await websocket.accept()
+    print(f"[VoiceChat] {user.first_name} joined room {room_id}")
+
+    #user's socket
+    if room_id not in voice_rooms:
+        voice_rooms[room_id] = {}
+
+    voice_rooms[room_id][user.id] = websocket
+
+    try:
+        while True:
+            data = await websocket.receive_bytes()
+
+            if data == b"END_CALL":
+                print(f"[VoiceChat] {user.first_name} ended the call in {room_id}")
+
+                for uid, peer_ws in voice_rooms[room_id].items():
+                    if peer_ws.application_state == WebSocketState.CONNECTED:
+                        try:
+                            await peer_ws.send_text("END_CALL")
+                            await peer_ws.close()
+                        except Exception as e:
+                            print(f"[VoiceChat] Error sending END_CALL: {e}")
+
+                active_calls.pop(room_id, None)
+                break
+
+            #we forward audio to the other user
+            for uid, peer_ws in voice_rooms[room_id].items():
+                if uid != user.id and peer_ws.application_state == WebSocketState.CONNECTED:
+                    try:
+                        await peer_ws.send_bytes(data)
+                    except Exception as e:
+                        print(f"[VoiceChat] Error forwarding audio: {e}")
+
+    except WebSocketDisconnect:
+        print(f"[VoiceChat] {user.first_name} disconnected from {room_id}")
+
+    finally:
+        voice_rooms[room_id].pop(user.id, None)
+        if not voice_rooms[room_id]:
+            voice_rooms.pop(room_id, None)
+        print(f"[VoiceChat] Active users in {room_id}: {len(voice_rooms.get(room_id, {}))}")
