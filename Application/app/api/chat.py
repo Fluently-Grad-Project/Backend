@@ -302,40 +302,38 @@ async def notify_hate_speech(
     transcript = data.get("transcript")
     label = data.get("label")
 
-    print(f"⚠️ Hate speech detected! Transcript: {transcript}, Label: {label}")
+    print(f"Hate/Offensive speech detected! Transcript: {transcript}, Label: {label}")
     print(f"Authorization token received for user_id: {user_id}")
 
-    if label == "hate_speech":
+    if label.lower() in ["hate", "offensive"]:
         user.hate_count = (user.hate_count or 0) + 1
-        print(f"Incremented hate count for user {user.id}: {user.hate_count}")
+        print(f"Updated hate count for user {user.id}: {user.hate_count}")
+
+        to_remove = []
+        for rid, participants in active_calls.items():
+            if user.id in participants:
+                print(f"Ending call in room {rid} due to policy violation.")
+                if rid in voice_rooms:
+                    for pid, ws in voice_rooms[rid].items():
+                        if ws.application_state == WebSocketState.CONNECTED:
+                            await ws.send_text("END_CALL")
+                            await ws.close()
+                    voice_rooms.pop(rid, None)
+                to_remove.append(rid)
+
+        for rid in to_remove:
+            active_calls.pop(rid, None)
 
         if user.hate_count >= 3:
-            user.is_locked=True
-            print(f"User {user.id} locked due to hate speech.")
-
-            to_remove = []
-            for rid, participants in active_calls.items():
-                if user.id in participants:
-
-                    if rid in voice_rooms:
-                        for pid, ws in voice_rooms[rid].items():
-                            if ws.application_state == WebSocketState.CONNECTED:
-                                await ws.send_text("END_CALL")
-                                await ws.close()
-                        voice_rooms.pop(rid, None)
-                    to_remove.append(rid)
-
-            for rid in to_remove:
-                active_calls.pop(rid, None)
-
+            user.is_locked = True
+            print(f"User {user.id} has been locked for repeated hate speech")
             ws = user_connections.get(user.id)
             if ws and ws.application_state == WebSocketState.CONNECTED:
                 await ws.send_json({
                     "event": "account_locked",
-                    "message": "Your account is locked due to repeated hate speech"
+                    "message": "Your account has been locked due to repeated hate speech"
                 })
                 await ws.close()
 
     db.commit()
-
     return {"status": "notification received"}

@@ -28,7 +28,7 @@ async def analyze_audio(file: UploadFile = File(...), authorization: str | None 
         text = detector.transcribe(output_path)
         label = detector.predict(text)
 
-        if label == "hate_speech":
+        if label == "Offensive" or label=="Hate":
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     "http://localhost:8000/notify-hate-speech",
