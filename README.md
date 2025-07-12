@@ -638,3 +638,17 @@ refresh_token=your_refresh_token_here
 - **Auth**: JWT  
 - **Real-Time**: WebSocket, WebRTC  
 - **AI**: Gemini API, Whisper, BERT  
+
+---
+
+## **🧭 System Diagrams**
+
+- *User Application Service*      
+   <img width="7509" height="3644" alt="class diagram v1-Application (2)" src="https://github.com/user-attachments/assets/a1913c47-c38a-4ca7-8c7d-e9cdffcb8741" />      
+<br><br><br>      
+- *Word of the day Service*
+  <img width="1721" height="901" alt="class diagram v1-wordOfTheDay drawio" src="https://github.com/user-attachments/assets/c8dfa2e5-d9d7-492d-a364-9e3d4e45bc0b" />      
+
+<br><br><br>      
+-  *Hate detection Service*
+  <img width="1035" height="515" alt="class diagram v1-HateDetection drawio" src="https://github.com/user-attachments/assets/76dda8e4-d8e5-4796-b683-9194102909fa" />
