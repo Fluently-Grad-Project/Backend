@@ -1,191 +1,85 @@
-go to:  https://ffmpeg.org/download.html    
-choose windows, and choose: Windows builds by BtbN    
-install:    
-```ffmpeg-master-latest-win64-gpl.zip```      
-extract files and take the .exe and put it in:  
-```bash
-C:\Users\<user>\AppData\Local\Programs\Python\Python312\Scripts
-```        
 
-
-## Backend Sample
-![alt text](image.png)
-
-![alt text](image-1.png)
-
-![alt text](image-2.png)
-
-navigate to http://127.0.0.1:8000/docs  and u will find all the endpoints 
-![alt text](image-3.png)
-
-----
-
-### For running any new translations for localization:    
-> go to: 
-```bash
-/app/core
-```   
-> then run:
-```bash
-pybabel compile -d translations
-```
-
-###  To do:
->   - non Functional Requirements (security bas azon ma3mola ya3ny me7tagen nekhaby el secrets       masalan??, performance blalalalaa)
->   - Chatbot for user lvl and AI conversations with pronunciation analysis  yarab nekhlas ba2a
->   - users voice chat including The NLP for hate speech recognition
->   - 3ayzeen ne3adel el status code beta3 el exceptions
->   - Unit Tests
-----
-
-# Things to be considered After Security🥱
-> Ensure That reported users cannot login to the System, don't appear in the matchmaking,     Friend's list, etc.....   
-> Hal el report_score byerga3 zero after lifting suspension 🤔??  
----
-# Update Rating column to have a default value 
-```sql
-ALTER TABLE user_manager ALTER COLUMN rating SET DEFAULT 0.0;
-
--- Update any existing NULL values
-UPDATE user_manager SET rating = 0.0 WHERE rating IS NULL;
--- Update the activty tracker Table with this --
-ALTER TABLE activity_tracker ADD COLUMN last_practiced_date TIMESTAMP WITH TIME ZONE;
-```
-
-# To-Be-DoneS-Later     >> after team-meeting probably??
-
-## 📌📌📌📌
-> A verify_recaptcha() function was added to call Google's API    
-> The login route now requires a recaptcha_token in the request   
-> If CAPTCHA validation fails, the login is blocked and logged
+# **Fluently – Your Language Practice companion**  
+### *Real-time conversations with peer matching & pronunciation feedback*  
 
 ---
 
-> localization and globalization    
-> run SAST using sonarqube/bandit and inject it to the pipeline --> yes, using GitHub Actions [to-be-learned]    
-> run DAST using OWASP ZAP or [Burp Suite]    
-> on deployment:
->  - **Use Docker securely:**   
->     - Use non-root users   
->     - Use multi-stage builds   
->     - Scan Docker images (docker scan or Trivy)    
->  -  **Environment Hardening:**    
->     - Disable debug mode in production (uvicorn main:app --env=production)   
->     - Use HTTPS in production (TLS with certbot or Cloudflare)   
->     - Apply CIS Benchmarks for OS and container security   
->  - **Secure secrets in deployment**   
->     - Don’t store tokens or passwords in your GitHub   
+## **🌍 Overview**  
+Fluently helps language learners practice speaking through **live conversations** with peers and AI. Unlike traditional apps that focus on vocabulary drills, Fluently bridges the gap between learning and real-world usage by:  
+- **Matching learners** based on proficiency, interests, and goals  
+- **Providing AI-powered feedback** on pronunciation and fluency  
+- **Detecting hate speech** in real-time to ensure a safe community  
 
-----
-> ### Password Strength:
->   - At least 8 characters
->   - At least 1 uppercase letter
->   - At least 1 lowercase letter
->   - At least 1 number
->   - At least 1 special character
-----
+---
 
-> ### Report User Logic:
->  # user will be suspended when report_score reaches 20
->   - 30 days for users with 3+ critical reports
->   - 15 days for users with 1-2 critical reports
->   - 7 days for users with only low/medium priority reports
-----
+## **🚀 Quick Start**  
 
-🚨🚨🚨 **INSTALL/UPGRADE PYTHON 3.6.12**
+### **1. Prerequisites**  
+- [FFmpeg](https://ffmpeg.org/download.html) (Windows users: [see installation notes](#ffmpeg-installation))
+- Python 3.12+
+- PostgreSQL 14+
+
+### **2. Setup**  
 ```bash
-black app/ tests/
-```
-## 📌📌📌📌
-# ***BEFORE COMMITTING***
+git clone https://github.com/Fluently-Grad-Project/Backend
+cd Application
+python -m venv venv
+.\venv\Scripts\activate   #windows
 
-## **Run this to solve the flake8 errors, *to autoformat*:**
-```bash 
-black . 
-```   
-
-```bash
-flake8 . --exclude=env,.venv,venv --max-line-length=200 --ignore=E203,E262,W291,W503
-```   
-
-```bash
-mypy app --exclude '(env|.venv|venv)' --explicit-package-bases
-```   
-then fix these issues
-
-----
-
-#  Backend Setup & API Documentation
-
-## How to run things    
-
-**To run tests:**
-*NOT YET COMPLETED*
-```bash
-$env:PYTHONPATH = "."
-pytest --cov=app tests/
-```   
-
-----  
-
-```
-
-## Update the models using these:
-
-```bash
-alembic revision --autogenerate -m "... Add ...COLUMN... column to ...TABLE... ..."
-```
-then:
-
-```bash
-alembic upgrade head
-```
-
-## 🚨🚨🚨 DB Update
-```bash
-
-alembic revision --autogenerate -m "add profile_pic"
-alembic revision --autogenerate -m "add UserRating table"
-alembic revision --autogenerate -m "blocked_user_ids list a mutable"
-```
-then:
-```bash
-alembic upgrade head
-```
-
-
-##  How to Run the Backend
->go to the project main directory and create virtual environment using the following command:
-```bash
-python -m venv env
-#activate this environment using the following command:
-
-# For Windows:
-env\Scripts\activate
-```
-
-> create a database: fluently
-
-
-```bash
-#install dependencies
 pip install -r requirements.txt
-
-#run the development server
-python -m uvicorn app.main:app --reload
+alembic upgrade head
+uvicorn app.main:app --reload
 ```
+
+then:    
+```bash
+cd Word_of_the_day
+python -m venv venv
+.\venv\Scripts\activate   #windows
+
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+
+```
+
+then:    
+```bash
+cd "Hate Detection Service"
+python -m venv venv
+.\venv\Scripts\activate   #windows
+
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+
+```
+
+**API Docs**: http://localhost:8000/docs  
+
+<details id="ffmpeg-installation">
+<summary><h3>FFmpeg Installation (Windows)</h3></summary>
+
+1. Download `ffmpeg-master-latest-win64-gpl.zip` from [FFmpeg](https://ffmpeg.org/download.html)  
+2. Extract and place `ffmpeg.exe` in:  
+   ```bash
+   C:\Users\<user>\AppData\Local\Programs\Python\Python312\Scripts
+   ```
+</details>
 
 ---
 
-##  Authentication Endpoints
+## **📡 API Endpoints**
 
-### 1.  Register New User
+## Authentication Endpoints
 
-* **Endpoint:** `POST /users/register`
+<details>
+<summary><strong> 1. Register New User </strong></summary>
+
+* **Endpoint:** `POST /users/register`  
 * **URL:** [http://127.0.0.1:8000/users/register](http://127.0.0.1:8000/users/register)
 
-####  Request Body
-
+#### Request Body
 ```json
 {
   "first_name": "m",
@@ -199,9 +93,9 @@ python -m uvicorn app.main:app --reload
   "practice_frequency": "15",
   "interests": ["Reading", "Traveling"]
 }
-```
+````
 
-####  Response
+#### Response
 
 ```json
 {
@@ -213,23 +107,24 @@ python -m uvicorn app.main:app --reload
     "gender": "female",
     "is_verified": false
   },
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "verification_link": "http://localhost:8000/auth/verify-email?email=mennatallahahmed892@gmail.com&code=87a833b165ecabc5935e7870213c23ba"
+  "access_token": "...",
+  "verification_link": "http://localhost:8000/auth/verify-email?email=...&code=..."
 }
 ```
 
->  **Note:**
+> **Note:**
 >
 > * A verification email will be sent to the user.
 > * Users **cannot log in** until their email is verified.
 
----
+</details>
 
-### 2.  Verify Email
+<details>
+<summary><strong> 2. Verify Email </strong></summary>
 
 * **Endpoint:** `GET /auth/verify-email?email={email}&code={verification_code}`
 
-####  Response
+#### Response
 
 ```json
 {
@@ -237,13 +132,14 @@ python -m uvicorn app.main:app --reload
 }
 ```
 
----
+</details>
 
-### 3.  Login
+<details>
+<summary><strong> 3. Login </strong></summary>
 
 * **Endpoint:** `POST /auth/login`
 
-####  Request Body
+#### Request Body
 
 ```json
 {
@@ -252,7 +148,7 @@ python -m uvicorn app.main:app --reload
 }
 ```
 
-####  Response
+#### Response
 
 ```json
 {
@@ -261,13 +157,14 @@ python -m uvicorn app.main:app --reload
 }
 ```
 
----
+</details>
 
-### 4.  Request Password Reset
+<details>
+<summary><strong> 4. Request Password Reset</strong></summary>
 
 * **Endpoint:** `POST http://127.0.0.1:8000/auth/request-password-reset`
 
-####  Request Body
+#### Request Body
 
 ```json
 {
@@ -275,7 +172,7 @@ python -m uvicorn app.main:app --reload
 }
 ```
 
-####  Response
+#### Response
 
 ```json
 {
@@ -284,18 +181,19 @@ python -m uvicorn app.main:app --reload
 }
 ```
 
->  **Note:**
+> **Note:**
 >
 > * The reset code will be sent to the user's email.
 > * Code expires in **15 minutes**.
 
----
+</details>
 
-### 5.  Reset Password
+<details>
+<summary><strong> 5. Reset Password</strong></summary>
 
 * **Endpoint:** `POST http://127.0.0.1:8000/auth/reset-password`
 
-####  Request Body
+#### Request Body
 
 ```json
 {
@@ -305,7 +203,7 @@ python -m uvicorn app.main:app --reload
 }
 ```
 
-####  Response
+#### Response
 
 ```json
 {
@@ -313,42 +211,45 @@ python -m uvicorn app.main:app --reload
 }
 ```
 
----   
+</details>
 
-### 6. Refresh Token    
+<details>
+<summary><strong> 6. Refresh Token</strong></summary>
 
 * **Endpoint:** `POST http://127.0.0.1:8000/auth/refresh-token?refresh-token=the_refresh_token_stored_from_user_login`
 * **Rate Limit:** 2 requests per minute
 
-#### Request: 
+#### Request
 
 ```http
 refresh_token=your_refresh_token_here
 ```
 
-#### Response:
+#### Response
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "...",
+  "refresh_token": "...",
   "token_type": "bearer"
 }
-```   
----   
+```
 
-### 7. Upload or Update Profile Picture
+</details>
+
+<details>
+<summary><strong> 7. Upload or Update Profile Picture</strong></summary>
 
 * **Endpoint:** `POST /auth/upload-profile-picture`
 * **Authorization:** Bearer Token
 
-#### Request Body (form-data):
+#### Request Body (form-data)
 
-| Key  | Type |  Description             |
-|------|------|--------------------------|
+| Key  | Type | Description                            |
+| ---- | ---- | -------------------------------------- |
 | file | File | Your profile image file (jpg/png/jpeg) |
 
-#### Response:
+#### Response
 
 ```json
 {
@@ -356,184 +257,136 @@ refresh_token=your_refresh_token_here
   "image_path": "/uploads/profile_pics/xxxxxxxx.png"
 }
 ```
----   
 
-### 8. Update Profile
+</details>
+
+<details>
+<summary><strong> 8. Update Profile</strong></summary>
 
 * **Endpoint:** `PATCH http://127.0.0.1:8000/users/update-profile`
 * **Authorization:** Bearer Token
 
-#### Request Body 
+#### Request Body
+
 ```json
 {
   "first_name": "s",
   "last_name": "a",
   "gender": "FEMALE",
-  "interests": [
-    "Science"
-  ],
+  "interests": ["Science"],
   "proficiency_level": "INTERMEDIATE"
 }
 ```
-#### Response:
+
+#### Response
 
 ```json
 {
-    "id": 2,
-    "first_name": "s",
-    "last_name": "a",
-    "gender": "female",
-    "interests": [
-        "Science"
-    ],
-    "proficiency_level": "Intermediate",
-    "message": "Profile updated successfully"
+  "id": 2,
+  "first_name": "s",
+  "last_name": "a",
+  "gender": "female",
+  "interests": ["Science"],
+  "proficiency_level": "Intermediate",
+  "message": "Profile updated successfully"
 }
 ```
----   
 
-### 9. Logout
+</details>
+
+<details>
+<summary><strong> 9. Logout</strong></summary>
 
 * **Endpoint:** `POST http://127.0.0.1:8000/users/logout`
 * **Authorization:** Bearer Token
 
-#### Response:
+#### Response
 
 ```json
 {
-    "message": "Successfully logged out"
+  "message": "Successfully logged out"
 }
 ```
---------------------------------------------  
 
-## Freindship-related endpoints
-
-###  **Precondition**: JWT Token Authentication
-
-In **Postman**, under the `Authorization` tab:
-
-* Type: `Bearer Token`
-* Token: paste your JWT (from login endpoint)
+</details>
 
 ---
 
-##  1. **Send Friend Request**
+## Friendship-related Endpoints
 
-* **Endpoint**:
-  `POST http://localhost:8000/friends/request/{receiver_id}`
-  Replace `{receiver_id}` with the target user’s ID (e.g. `2`)
+<details>
+<summary><strong> 1. Send Friend Request</strong></summary>
 
-* **Body**: None (Just authenticated user is the sender)
+* **Endpoint:** `POST http://localhost:8000/friends/request/{receiver_id}`
+* **Body:** None
 
----
+</details>
 
-##  2. **Accept Friend Request**
+<details>
+<summary><strong> 2. Accept Friend Request</strong></summary>
 
-* **Endpoint**:
-  `POST http://localhost:8000/friends/accept/{sender_id}`
-  Replace `{sender_id}` with the user who sent you the request.
+* **Endpoint:** `POST http://localhost:8000/friends/accept/{sender_id}`
+* **Body:** None
 
-* **Body**: None
+</details>
 
-* Authenticated user is the receiver.
+<details>
+<summary><strong> 3. Reject Friend Request</strong></summary>
 
----
+* **Endpoint:** `POST http://localhost:8000/friends/reject/{sender_id}`
+* **Body:** None
 
-##  3. **Reject Friend Request**
+</details>
 
-* **Endpoint**:
-  `POST http://localhost:8000/friends/reject/{sender_id}`
-  Replace `{sender_id}` with the user who sent you the request.
+<details>
+<summary><strong> 4. Get Pending Friend Requests</strong></summary>
 
-* **Body**: None
+* **Endpoint:** `GET http://localhost:8000/friends/get-friend-requests`
 
-* Authenticated user is the receiver.
+</details>
 
----
+<details>
+<summary><strong> 5. Get Rejected Friend Requests</strong></summary>
 
-##  4. **Get Pending Friend Requests**
+* **Endpoint:** `GET http://localhost:8000/friends/get-rejected-requests`
 
-* **Endpoint**:
-  `GET http://localhost:8000/friends/get-friend-requests`
+</details>
 
-* **Body**: None
+<details>
+<summary><strong> 6. Get Friend List</strong></summary>
 
-* Response: List of pending friend requests sent to the authenticated user.
+* **Endpoint:** `GET http://localhost:8000/friends/get-friend-list`
 
----
-
-##  5. **Get Rejected Friend Requests**
-
-* **Endpoint**:
-  `GET http://localhost:8000/friends/get-rejected-requests`
-
-* **Body**: None
-
-* Response: List of rejected friend requests for authenticated user.
+</details>
 
 ---
 
-##  6. **Get Friend List**
+## Leaderboard Endpoints
 
-* **Endpoint**:
-  `GET http://localhost:8000/friends/get-friend-list`
-
-* **Body**: None
-
-* Response: List of friends for the authenticated user
-
-
----
-
-##  Leaderboard Endpoints
-
-### 1.  Get `All users` leaderboard
+<details>
+<summary><strong> 1. Get All Users Leaderboard</strong></summary>
 
 * **Endpoint:** `GET http://localhost:8000/leaderboard/all`
 
-####  Request Body : None
-####  Response: a list of top users based on number of hours in Activity Tracker
+</details>
 
----
-
-### 2.  Get `My friends` leaderboard
+<details>
+<summary><strong> 2. Get Friends Leaderboard</strong></summary>
 
 * **Endpoint:** `GET http://localhost:8000/leaderboard/friends?page=1&page_size=10`
 
-
-####  Request Body : None
-####  Response: a list of top users based on number of hours in Activity Tracker
-
->  **Note:**
->
-> * *page={TO BE SENT FROM UI BASED ON THE PAGE THE USER IS IN}&page_size={TO BE SENT FROM UI BASED ON THE PAGE THE USER IS IN}*
-
+</details>
 
 ---
 
-##  Chat Endpoints
+## Chat Endpoints
 
-###  Message Status Lifecycle
-
-| Status     | Meaning                                      |
-|------------|----------------------------------------------|
-| `sent`     | Message created by sender                   |
-| `delivered`| Recipient was online and received the message |
-| `read`     | Recipient viewed the message in the chat UI  |
-
-
-
-### 1. **WebSocket: Real-time Messaging**
+<details>
+<summary><strong> 1. WebSocket: Real-time Messaging</summary>
 
 * **Endpoint:** `ws://localhost:8000/ws/chat?token=YOUR_JWT_TOKEN`
 
-* **Type:** WebSocket
-
-####  Description:
-
-Establishes a WebSocket connection for real-time chatting between users
-
-####  Send Message Format (JSON):
+#### Send Message
 
 ```json
 {
@@ -542,33 +395,14 @@ Establishes a WebSocket connection for real-time chatting between users
 }
 ```
 
-####  Message Received:
+</details>
 
-Messages are received in this format:
-
-```
-SenderName: Hello!
-```
-
-> **Note:**
->
-> * You must pass a **valid JWT token** in the `token` query parameter
-
----
-
-### 2. **Get Chat History with a Specific User**
+<details>
+<summary><strong> 2. Get Chat History with a Specific User</strong></summary>
 
 * **Endpoint:** `GET http://localhost:8000/chat/history?receiver_id={receiver_id}`
 
-* **Query Param:**
-
-  * `receiver_id`: The ID of the user you chatted with
-
-* **Headers:**
-
-  * `Authorization: Bearer YOUR_JWT_TOKEN`
-
-####  Response:
+#### Response
 
 ```json
 [
@@ -578,83 +412,41 @@ SenderName: Hello!
     "receiver_id": 2,
     "message": "Hello!",
     "timestamp": "2025-06-10T14:00:00",
-    "status": "delivered"  // "sent", "delivered", or "read"
+    "status": "delivered"
   }
 ]
 ```
 
-> Returns ***all messages*** exchanged between the authenticated user and the given `receiver_id`
+</details>
 
----
-
-### 3. **Get My Chat Contacts**
+<details>
+<summary><strong> 3. Get My Chat Contacts</strong></summary>
 
 * **Endpoint:** `GET http://localhost:8000/chat/my-contacts`
 
-* **Headers:**
+</details>
 
-  * `Authorization: Bearer YOUR_JWT_TOKEN`
+<details>
+<summary><strong> 4. Mark Messages as Read</strong></summary>
 
-####  Response:
+* **Endpoint:** `POST /chat/mark-as-read/{sender_id}`
 
-```json
-[
-  {
-    "id": 2,
-    "first_name": "fname",
-    "last_name": "lname",
-    "email": "user@gmail.com"
-  },
-]
-```
+#### Response
 
-> Returns a list of users that the user has ever chatted with (sent or received a message)
-
----
-
-### 4. **Mark Messages as Read**
-**Endpoint:** POST /chat/mark-as-read/{sender_id}
-Marks messages from the given sender as read for the user
-
-**Headers:**
-
-Authorization: Bearer YOUR_JWT_TOKEN
-
-**Path Param:**
-sender_id — ID of the user who sent you the messages
-
-**Body: None**
-
-Response:
 ```json
 {
   "message": "Messages marked as read"
 }
 ```
-> ***This should be called from the frontend when the user opens the chat***
 
+</details>
 
----
+<details>
+<summary><strong> 5. Send Call Request</strong></summary>
 
+* **WebSocket Endpoint:** `/ws/send_call_request?token=YOUR_JWT_TOKEN`
 
-
-
-### 5. **Send Call Request**
-
-**Endpoint:** `WebSocket /ws/send_call_request?token=YOUR_JWT_TOKEN`
-Used for initiating and handling signaling between users for a voice call (offer/answer style).
-
-**Authentication:**
-Token must be passed as a query parameter:
-
-```
-/ws/send_call_request?token=YOUR_JWT_TOKEN
-```
-
-**Headers:**
-None (token is in URL)
-
-**Sent Events (Client → Server):**
+#### Sent Events
 
 ```json
 {
@@ -663,159 +455,43 @@ None (token is in URL)
 }
 ```
 
-Initiates a call to another user by ID.
+</details>
 
-```json
-{
-  "event": "call_response",
-  "accepted": true,
-  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
-}
-```
+<details>
+<summary><strong> 6. Start Voice Chat</strong></summary>
 
-Response to an incoming call with `accepted: true` or `false`.
+* **WebSocket Endpoint:** `/ws/start_voice_chat/{roomId}?token=YOUR_JWT_TOKEN`
 
-**Received Events (Server → Client):**
+</details>
 
-```json
-{
-  "event": "incoming_call",
-  "from_user": { "id": 10, "name": "Alice" },
-  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
-}
-```
+<details>
+<summary><strong> 7. Analyze Audio</strong></summary>
 
-Notifies the callee of an incoming call.
+* **POST:** `http://localhost:8001/analyze-audio`
+* **Header:** Bearer token
+* **Body:** Audio file
 
-```json
-{
-  "event": "call_accepted",
-  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
-}
-```
-
-The callee accepted — start voice chat.
-
-```json
-{
-  "event": "call_rejected",
-  "room_id": "e4a1cb12-9f55-4ef6-8cf7-a6d8a1eec5b3"
-}
-```
-
-The callee rejected the call.
-
-> ℹ️ This socket remains open to manage multiple call events per session.
-
----
-
-### 6. **Start Voice Chat**
-
-**Endpoint:** `WebSocket /ws/start_voice_chat/{roomId}?token=YOUR_JWT_TOKEN`
-Starts a real-time audio streaming session for a 1-on-1 voice call.
-
-**Authentication:**
-Token must be passed as a query parameter:
-
-```
-/ws/start_voice_chat/{roomId}?token=YOUR_JWT_TOKEN
-```
-
-**Headers:**
-None
-
-**Body:**
-Sends raw binary audio data (e.g., `Float32Array`) over WebSocket in real time.
-
-**Special Control Message (to end call):**
-The string `"END_CALL"` must be sent as binary to indicate call termination.
-
-**Received Messages:**
-
-* Binary audio data from the other user (as `ArrayBuffer`)
-* Control message:
-
-  ```text
-  "END_CALL"
-  ```
-
-  Indicates the other user ended the call.
-
-> ⚠️ If a user sends `"END_CALL"`, the backend notifies and disconnects both peers.
->
-> ℹ️ Only users who are part of the `active_calls` session can access this WebSocket.
-
-----
-
-
-
-### 7. **Analyze Audio**
-
-**Endpoint:** `POST http://localhost:8001/analyze-audio` 
-Used for uploading an audio file to transcribe speech and detect hate speech content.
-
-**Authentication:**
-Token must be passed in the `Authorization` header as a Bearer token
-
-```
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-**Headers:**
-
-* `Content-Type: multipart/form-data` (for file upload)
-* `Authorization: Bearer YOUR_JWT_TOKEN`
-
-**Request Body (multipart/form-data):**
-
-| Field | Type | Description           |
-| ----- | ---- | --------------------- |
-| file  | File | Audio file to analyze |
-
-**Response (application/json):**
+#### Response
 
 ```json
 {
   "transcript": "Transcribed text from audio",
-  "label": "hate_speech" | "normal" | "offensive" | ...
+  "label": "hate_speech"
 }
 ```
 
-* `transcript`: Text transcribed from the audio.
-* `label`: Classification result indicating hate speech or other categories.
-
-**Behavior:**
-
-* Converts uploaded audio to 16kHz mono WAV internally before processing.
-* If `label` is `"hate_speech"`, a notification is sent internally to `/notify-hate-speech` with the transcript and label, including the Authorization header if provided.
-* Temporary files are cleaned up automatically.
-
-**Error Responses:**
-
-* `400 Bad Request` if audio conversion fails or invalid file is provided.
-* Other HTTP errors may occur if internal notification fails.
+</details>
 
 ---
 
-
 ## User Rating Endpoints
 
-### 1. **Rate a User**
+<details>
+<summary><strong> 1. Rate a User</strong></summary>
 
-* **Endpoint:**
-  `POST http://127.0.0.1:8000/users/rate-user/{user_id}`
-  *(Replace `{user_id}` with the ID of the user you want to rate)*
+* **Endpoint:** `POST http://127.0.0.1:8000/users/rate-user/{user_id}`
 
-* **Authorization Required:** Bearer Token
-
-#### Headers:
-
-```http
-Authorization: Bearer YOUR_JWT_TOKEN
-Content-Type: application/json
-```
-
-#### Request Body:
+#### Request
 
 ```json
 {
@@ -823,27 +499,14 @@ Content-Type: application/json
 }
 ```
 
-> 🟡 Allowed range is from **1** to **5**, floats are accepted (4.5)
+</details>
 
-#### Response:
+<details>
+<summary><strong> 2. Get Average Rating for a User</strong></summary>
 
-```json
-{
-  "message": "Rating submitted successfully."
-}
-```
+* **Endpoint:** `GET http://127.0.0.1:8000/users/rating/{user_id}`
 
----
-
-### 2. **Get Average Rating for a User**
-
-* **Endpoint:**
-  `GET http://127.0.0.1:8000/users/rating/{user_id}`
-  *(Replace `{user_id}` with the rated user’s ID)*
-
-* **Authorization Required:** None
-
-#### Response:
+#### Response
 
 ```json
 {
@@ -853,109 +516,80 @@ Content-Type: application/json
 }
 ```
 
-> ℹ️ `count` is the number of users who rated this user
-
-
-----
-
-
-## Block User (from another user) Endpoints
-
-### 1. **Rate a User**
-
-* **Endpoint:**
-  `POST http://127.0.0.1:8000/users/block-user/{user_id_to_block}`
-  *(Replace `{user_id}` with the ID of the user you want to block)*
-
-* **Authorization Required:** Bearer Token
-
-#### Headers:
-
-```http
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-#### Request Body: none
-
-> 🟡 Allowed range is from **1** to **5**, floats are accepted (4.5)
-
-#### Response:
-
-```json
-{
-    "message": "You blocked user {user_id_to_block} successfully"
-}
-```
+</details>
 
 ---
 
-### 2. **Get Blocked users for a user**
+## Block User Endpoints
 
-* **Endpoint:**
-  `GET http://127.0.0.1:8000/users/blocked-users`
+<details>
+<summary><strong> 1. Block a User</strong></summary>
 
-* **Authorization Required:** None
+* **Endpoint:** `POST http://127.0.0.1:8000/users/block-user/{user_id_to_block}`
 
-#### Response:
+#### Response
 
 ```json
 {
-    "blocked_user_ids": [
-        id1,
-    ]
+  "message": "You blocked user {user_id_to_block} successfully"
 }
 ```
-## Matchmaking endpoint
-**Endpoint:** `GET http://localhost:8000/matchmaking/get-matched-users?n_recommendations=5`
-**Headers:**
 
-Authorization: Bearer YOUR_JWT_TOKEN
-####  Response Example
+</details>
+
+<details>
+<summary><strong> 2. Get Blocked Users</strong></summary>
+
+* **Endpoint:** `GET http://127.0.0.1:8000/users/blocked-users`
+
+#### Response
+
+```json
+{
+  "blocked_user_ids": [id1]
+}
+```
+
+</details>
+
+---
+
+## Matchmaking Endpoint
+
+<details>
+<summary><strong> Matchmaking</strong></summary>
+
+* **Endpoint:** `GET http://localhost:8000/matchmaking/get-matched-users?n_recommendations=5`
+
+#### Response
+
 ```json
 [
-    {
-        "user_id": 2,
-        "username": "m a",
-        "interests": ["Reading","Traveling"],
-        "rating": null,
-        "age": 21,
-        "gender": "female",
-        "similarity_score": 1.0
-    },
-    {
-        "user_id": 8,
-        "username": "m a",
-        "interests": [
-            "Travel"
-        ],
-        "rating": null,
-        "age": 21,
-        "gender": "female",
-        "similarity_score": 0.5773502691896258
-    },
-    {
-        "user_id": 6,
-        "username": "a b",
-        "interests": [
-            "Cars and automobiles",
-            "Politics",
-            "Travel"
-        ],
-        "rating": null,
-        "age": 47,
-        "gender": "female",
-        "similarity_score": 0.0
-    }
+  {
+    "user_id": 2,
+    "username": "m a",
+    "interests": ["Reading","Traveling"],
+    "rating": null,
+    "age": 21,
+    "gender": "female",
+    "similarity_score": 1.0
+  }
 ]
 ```
 
+</details>
 
-##  Report a user Endpoint
-**Endpoint:** `POST http://127.0.0.1:8000/reports/`
-**Headers:**
+---
 
-Authorization: Bearer YOUR_JWT_TOKEN
-####  Request Body Example
+## Report a User Endpoint
+
+<details>
+<summary><strong> Report a User</strong></summary>
+
+* **Endpoint:** `POST http://127.0.0.1:8000/reports/`
+
+#### Request Body
+
 ```json
 {
   "reported_user_id": 3,
@@ -963,23 +597,44 @@ Authorization: Bearer YOUR_JWT_TOKEN
   "reason": "anything"
 }
 ```
-##  Update Practice Hours Endpoint
-**Endpoint:** `PATCH http://localhost:8000/activity/update_hours` 
-**Headers:**
 
-Authorization: Bearer YOUR_JWT_TOKEN
-####  Request Body Example
+</details>
+
+---
+
+## Update Practice Hours Endpoint
+
+<details>
+<summary><strong> Update Practice Hours</strong></summary>
+
+* **Endpoint:** `PATCH http://localhost:8000/activity/update_hours`
+
+#### Request Body
+
 ```json
 {
   "hours_to_add": 1
 }
 ```
+
+#### Response
+
 ```json
-####  Response
 {
-    "streaks": 0,
-    "user_id": 7,
-    "id": 5,
-    "number_of_hours": 1
+  "streaks": 0,
+  "user_id": 7,
+  "id": 5,
+  "number_of_hours": 1
 }
 ```
+
+</details>
+
+---
+
+## **🛠 Tech Stack**  
+- **Backend**: Python (FastAPI)    
+- **Database**: PostgreSQL  
+- **Auth**: JWT  
+- **Real-Time**: WebSocket, WebRTC  
+- **AI**: Gemini API, Whisper, BERT  
