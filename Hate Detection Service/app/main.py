@@ -29,3 +29,6 @@ logger = logging.getLogger("security")
 
 app.include_router(router)
 # app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001) 
